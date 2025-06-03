@@ -22,3 +22,7 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+
+# dev-mode service worker
+sw.js
+workbox-*.js
