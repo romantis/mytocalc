@@ -1,5 +1,17 @@
+---
+import "../styles/global.css";
+const pageTitle =
+  Astro.props.title || "MytoCalc – митний калькулятор імпортних посилок";
+const pageDescription =
+  Astro.props.description ||
+  `Швидко розрахуйте мито та ПДВ на імпортні товари в Україну. Актуальні правила, курс НБУ, UA / EN інтерфейс, відкритий API.`;
+const pageKeywords =
+  Astro.props.keywords ||
+  `mytocalc, митний калькулятор, калькулятор мита, ПДВ, імпорт товарів, customs duty calculator, import VAT, Ukraine`;
+---
+
 <!doctype html>
-<html lang="en">
+<html lang="uk">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width" />
@@ -9,7 +21,63 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
     <meta name="generator" content={Astro.generator} />
-    <title>CustomsCalc UA</title>
+
+    <title>{pageTitle}</title>
+    <meta name="description" content={pageDescription} />
+    <meta name="keywords" content={pageKeywords} />
+    <meta name="author" content="Metric Harmony" />
+    <link rel="canonical" href="https://mytocalc.com/" />
+
+    <!-- === Мульти-мовність === -->
+    <link rel="alternate" hreflang="uk" href="https://mytocalc.com/" />
+    <link rel="alternate" hreflang="en" href="https://mytocalc.com/en/" />
+    <link rel="alternate" hreflang="x-default" href="https://mytocalc.com/" />
+
+    <!-- === Open Graph === -->
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="uk_UA" />
+    <meta property="og:title" content={pageTitle} />
+    <meta
+      property="og:description"
+      content="Дізнайся суму мита та ПДВ ще до покупки. Безкоштовно, точно, прозоро."
+    />
+    <meta property="og:url" content="https://mytocalc.com/" />
+    <!-- TODO OG-cover: згенеруй 1200×630 PNG з коротким слоганом і лого.-->
+    <meta property="og:image" content="https://mytocalc.com/og-cover.png" />
+    <meta
+      property="og:image:alt"
+      content="Скріншот онлайн-калькулятора MytoCalc"
+    />
+
+    <!-- === Twitter Card === -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@MytoCalc" />
+    <meta name="twitter:title" content={pageTitle} />
+    <meta
+      name="twitter:description"
+      content="Розрахуйте мито та ПДВ на імпортні товари в Україну за секунду."
+    />
+    <meta name="twitter:image" content="https://mytocalc.com/og-cover.png" />
+
+    <!-- === Schema.org (JSON-LD) === -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Calculator",
+        "name": "MytoCalc",
+        "url": "https://mytocalc.com/",
+        "description": "Онлайн-калькулятор митних платежів (мито + ПДВ) для імпортних посилок в Україну.",
+        "inLanguage": ["uk", "en"],
+        "applicationCategory": "FinanceApplication",
+        "offers": {
+          "@type": "Offer",
+          "price": "0.00",
+          "priceCurrency": "USD",
+          "availability": "https://schema.org/InStock"
+        },
+        "image": "https://mytocalc.com/og-cover.png"
+      }
+    </script>
   </head>
   <body>
     <slot />

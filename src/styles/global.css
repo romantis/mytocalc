@@ -1,1 +1,22 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@theme {
+    --color-brand-50: oklch(95.77% 0.026 227.89);
+    --color-brand-100: oklch(91.01% 0.055 229.72);
+    --color-brand-200: oklch(83.23% 0.102 232.09);
+    --color-brand-300: oklch(76.02% 0.143 235.64);
+    --color-brand-400: oklch(70.72% 0.168 242.04);
+    --color-brand-500: oklch(57.27% 0.132 240.58);
+    --color-brand-600: oklch(48.74% 0.113 240.76);
+    --color-brand-700: oklch(39.3% 0.089 239.28);
+    --color-brand-800: oklch(30.5% 0.068 238.26);
+    --color-brand-900: oklch(19.63% 0.04 231.93);
+    --color-brand-950: oklch(15.18% 0.028 222.17);
+}
+
+
+:root {
+    -webkit-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}

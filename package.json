@@ -11,9 +11,13 @@
   "dependencies": {
     "@astrojs/cloudflare": "^12.5.3",
     "@astrojs/solid-js": "^5.1.0",
+    "@tailwindcss/typography": "^0.5.16",
     "@tailwindcss/vite": "^4.1.8",
     "astro": "^5.8.1",
     "solid-js": "^1.9.7",
     "tailwindcss": "^4.1.8"
+  },
+  "devDependencies": {
+    "@vite-pwa/astro": "^1.1.0"
   }
 }
