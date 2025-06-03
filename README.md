@@ -1,48 +1,81 @@
-# Astro Starter Kit: Basics
+# CustomsCalc UA
 
-```sh
-npm create astro@latest -- --template basics
-```
+**Калькулятор митних платежів для імпортних посилок в Україну**
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/withastro/astro/tree/latest/examples/basics)
-[![Open with CodeSandbox](https://assets.codesandbox.io/github/button-edit-lime.svg)](https://codesandbox.io/p/sandbox/github/withastro/astro/tree/latest/examples/basics)
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/withastro/astro?devcontainer_path=.devcontainer/basics/devcontainer.json)
+**CustomsCalc UA** — це односторінковий веб-додаток, який миттєво (менше ніж за 1 секунду) розраховує суму ввізного мита та ПДВ для фізосіб за чинними правилами України. Проєкт реалізовано на Astro + SolidJS (чи React), стилізовано за допомогою TailwindCSS та розгорнуто на Cloudflare Pages.
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+---
 
-![just-the-basics](https://github.com/withastro/astro/assets/2244813/a0a5533c-a856-4198-8470-2d67b1d7c554)
+## Зміст
 
-## 🚀 Project Structure
+1. [Опис проекту](#опис-проекту)  
+2. [Можливості (MVP)](#можливості-mvp)  
+3. [Нормативна база (станом на 02.06.2025)](#нормативна-база-станом-на-02062025)  
+4. [Технічний стек](#технічний-стек)  
+5. [Структура репозиторію](#структура-репозиторію)  
+6. [Швидкий старт](#швидкий-старт)  
+   - [1. Клонування репозиторію](#1-клонування-репозиторію)  
+   - [2. Встановлення залежностей](#2-встановлення-залежностей)  
+   - [3. Локальний запуск](#3-локальний-запуск)  
+   - [4. Побудова (build)](#4-побудова-build)  
+   - [5. Розгортання на Cloudflare Pages](#5-розгортання-на-cloudflare-pages)  
+7. [Конфігурація й середовище](#конфігурація-й-середовище)  
+   - [Змінні середовища (env vars)](#змінні-середовища-env-vars)  
+   - [Feature‐flags](#feature‐flags)  
+8. [Тестування](#тестування)  
+9. [Плани розвитку](#плани-розвитку)  
+10. [Контакти](#контакти)  
+11. [Ліцензія](#ліцензія)  
 
-Inside of your Astro project, you'll see the following folders and files:
+---
 
-```text
-/
-├── public/
-│   └── favicon.svg
-├── src/
-│   ├── layouts/
-│   │   └── Layout.astro
-│   └── pages/
-│       └── index.astro
-└── package.json
-```
+## Опис проекту
 
-To learn more about the folder structure of an Astro project, refer to [our guide on project structure](https://docs.astro.build/en/basics/project-structure/).
+CustomsCalc UA — легкий і швидкий інструмент для оцінки митних платежів і ПДВ при замовленні товарів із-за кордону. Він дозволяє користувачам увести вартість товару (у EUR, USD або UAH), вибрати валюту, а також при потребі режим «Законопроєкт 2025». Система автоматично завантажує курс НБУ та обчислює:
 
-## 🧞 Commands
+- **Ввізне мито** (10 % від суми, що перевищує € 150)  
+- **ПДВ** (20 % від бази оподаткування: за чинними правилами — від (суми − € 100 + мито); за проєктом 2025 — від (суми + мито))  
+- **Загальну суму** до сплати  
 
-All commands are run from the root of the project, from a terminal:
+Усе це відбувається live, без перезавантаження сторінки.
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
+---
 
-## 👀 Want to learn more?
+## Можливості (MVP)
 
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+1. **Live-розрахунок митних платежів + ПДВ**  
+   - Введення **вартості** та вибір **валюти** (USD, EUR, UAH)  
+   - Автоматичне завантаження курсу НБУ раз на добу (кеш у `localStorage`)  
+   - Підтримка «чинних правил» і «законопроєкт 2025» (через toggle-кнопку)
+
+2. **URL-параметри для шейрингу**  
+   - Після натискання «Розрахувати» на URL додаються параметри `?amount=XXX&currency=XXX&draftLaw2025=[true|false]`  
+   - При повторному завантаженні за цим URL результат залишається тотожним
+
+3. **Валідація введених даних**  
+   - 0 < amount ≤ 10 000 € (лише число)  
+   - UI-повідомлення про помилки з `aria-role="alert"`
+
+4. **Feature-flag «draftLaw2025»**  
+   - При переключенні на режим «Законопроєкт 2025» показується поп-ап «норма ще не діє»  
+   - Формули розрахунків автоматично змінюються за новими умовами  
+
+5. **Поділитися результатом**  
+   - Копіювання URL у буфер обміну  
+   - Підтримка Web Share API на мобільних пристроях
+
+---
+
+## Нормативна база (станом на 02.06.2025)
+
+| Діапазон митної вартості | Ввізне мито                      | ПДВ                                                | Коментар                                                                         |
+| ------------------------ | -------------------------------- | --------------------------------------------------- | -------------------------------------------------------------------------------- |
+| ≤ 150 €                  | 0 €                               | 0 €                                                | Поріг без оподаткування                                                             |
+| > 150 € до 10 000 €      | 10 % × (Сума − 150 €)            | 20 % × [ (Сума − 100 €) + мито ]                    | Формула М-16                                                                     |
+| **DraftLaw 2025**        | 10 % × (Сума − 150 €) (як раніше) | 20 % × (Сума + мито) (від першого євро, без мито до 150 €) | Законопроєкт передбачає ПДВ 20 % від першої гривні (без мита для вартості ≤ € 150) |
+
+> **Примітка**: усі розрахунки виконуються у валюті **EUR**; конвертація з USD чи UAH відбувається за курсом НБУ.  
+
+---
+
+TODO: next
