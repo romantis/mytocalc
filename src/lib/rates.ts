@@ -60,6 +60,6 @@ export async function getRates(): Promise<Record<string, number>> {
     return fresh;
   } catch {
     // 3. fallback на build-time JSON
-    return fallbackRates as Record<string, number>;
+    return Object.fromEntries(fallbackRates.map(({ cc, rate }) => [cc, rate])) as Record<string, number>;
   }
 }
