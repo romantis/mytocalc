@@ -1,9 +1,11 @@
 ---
-import CustomsCalc from '../components/CustomsCalc.astro';
+import DutyCalculator from '../components/DutyCalculator';
 import Layout from '../layouts/Layout.astro';
+import { getRates } from '../lib/rates';
 
+const rates = await getRates();
 ---
 
 <Layout>
-	<CustomsCalc />
+	<DutyCalculator rates={rates} client:only />
 </Layout>
