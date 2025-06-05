@@ -13,6 +13,7 @@
     "types": [
       "vite-plugin-pwa/info",
       "vite-plugin-pwa/client"
-    ]
+    ],
+    "resolveJsonModule": true
   }
 }
