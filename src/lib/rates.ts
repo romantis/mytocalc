@@ -1,5 +1,4 @@
-// src/lib/rates.ts
-import fallbackRates from '../data/rates.fallback.json'; 
+// import fallbackRates from '../data/rates.fallback.json'; 
 
 export interface Rate {
   cc: string; // 'USD', 'EUR', …
@@ -58,6 +57,14 @@ export async function getRates(): Promise<Record<string, number>> {
     return fresh;
   } catch {
     // 3. fallback на build-time JSON
-    return Object.fromEntries(fallbackRates.map(({ cc, rate }) => [cc, rate])) as Record<string, number>;
+    // return Object.fromEntries(fallbackRates.map(({ cc, rate }) => [cc, rate])) as Record<string, number>;
+    return fallbackFetchFromNBU();
   }
+}
+
+async function fallbackFetchFromNBU() {
+   const res = await fetch('https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?json' );
+  if (!res.ok) throw new Error(`NBU API responded ${res.status}`);
+  const data: Rate[] = await res.json();
+  return Object.fromEntries(data.map(({ cc, rate }) => [cc, rate]));
 }
