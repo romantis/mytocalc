@@ -13,7 +13,7 @@ const TTL_MS = 24 * 60 * 60 * 1_000; // 24 h
 
 /** Raw fetch без кешу (лишилось як було) */
 export async function fetchRates(): Promise<Record<string, number>> {
-  const res = await fetch('api/rates' );
+  const res = await fetch('/api/rates' );
   if (!res.ok) throw new Error(`NBU API responded ${res.status}`);
   const data: Rate[] = await res.json();
   return Object.fromEntries(data.map(({ cc, rate }) => [cc, rate]));
