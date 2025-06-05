@@ -7,5 +7,10 @@ const rates = await getRates();
 ---
 
 <Layout>
-	<DutyCalculator rates={rates} client:only />
+	<DutyCalculator 
+		rates={rates}
+		initialAmount={150}
+		initialCurrency="EUR"
+		initialDraftLaw={false}
+		client:only />
 </Layout>
