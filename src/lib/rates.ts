@@ -1,5 +1,5 @@
 // src/lib/rates.ts
-import fallbackRates from '../data/rates.fallback.json' assert { type: 'json' };
+import fallbackRates from '../data/rates.fallback.json'; 
 
 export interface Rate {
   cc: string; // 'USD', 'EUR', …
