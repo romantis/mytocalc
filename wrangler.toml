@@ -1,5 +1,5 @@
-name = "update-rates-service"
-main = "src/workers/update-rates.ts"
+name = "rates-cron"
+main = "src/workers/rates-cron.ts"
 compatibility_date = "2025-06-04"
 
 [[kv_namespaces]]
@@ -7,4 +7,4 @@ binding = "RATES_KV"
 id = "2c33330d6f494f77ad9c0c324bd9a3e7"
 
 [triggers]
-crons = ["0 4 * * *"]  # 7:00 Kyiv = 4:00 UTC  :contentReference[oaicite:0]{index=0}
+crons = ["0 4 * * *"]  # 7:00 Kyiv = 4:00 UTC
