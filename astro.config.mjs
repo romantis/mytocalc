@@ -1,5 +1,5 @@
 // @ts-check
-import { defineConfig } from 'astro/config';
+import { defineConfig, envField } from 'astro/config';
 import solidJs from '@astrojs/solid-js';
 import cloudflare from '@astrojs/cloudflare';
 import tailwindcss from '@tailwindcss/vite';
@@ -65,5 +65,10 @@ export default defineConfig({
 
   vite: {
     plugins: [tailwindcss()],
+  },
+  env: {
+    schema: {
+      ALLOWED_ORIGINS: envField.string({ context: 'server', access: 'public' }),
+    },
   },
 });
