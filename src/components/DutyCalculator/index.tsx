@@ -48,18 +48,6 @@ export default function DutyCalculator(props: DutyCalculatorProps) {
 
   const [isAnimating, setIsAnimating] = createSignal(false);
 
-  // const amountUah = createMemo(() => {
-  //   const val = parseFloat(amount());
-  //   if (isNaN(val) || val <= 0) return 0;
-    
-  //   if (currency() === "UAH") return val;
-    
-  //   const rateToUah = props.rates[currency()];
-  //   if (!rateToUah) return 0;
-    
-  //   return (val * rateToUah);
-  // });
-
   const amountEur = createMemo(() => {
     const val = parseFloat(amount());
     if (isNaN(val) || val <= 0) return 0;
@@ -91,11 +79,6 @@ export default function DutyCalculator(props: DutyCalculatorProps) {
         minimumFractionDigits: 2,
       })
   );
-  // const fmt = new Intl.NumberFormat("uk-UA", {
-  //   style: "currency",
-  //   currency: "UAH",
-  //   minimumFractionDigits: 2,
-  // });
 
   const formatted = createMemo(() => ({
     duty: moneyFmt().format(duty().duty),
@@ -324,7 +307,7 @@ export default function DutyCalculator(props: DutyCalculatorProps) {
                       <span class={`text-lg font-bold ${
                         isFree() ? 'text-green-800' : 'text-red-800'
                       }`}>
-                        Загальна сума до доплати
+                        Загальна сума <br/> до доплати
                       </span>
                       <span class={`text-3xl font-black ${
                         isFree() ? 'text-green-600' : 'text-red-600'
