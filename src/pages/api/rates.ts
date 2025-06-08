@@ -63,7 +63,9 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
   if (!locals.runtime /* немає Workers runtime = astro dev */) {
     console.log("local DEV → direct fetch");
     const r = await fetch(DEV_FALLBACK_URL);
-    return jsonResp(await r.json());
+    // Щоби локально відразу бачити, що CORS працює так само
+    const txt = JSON.stringify(await r.json());
+    return addHeaders(jsonResp(txt), getCorsHeaders(request.headers.get("Origin")));
   }
   const { env, ctx } = locals.runtime;
   const origin = request.headers.get("Origin");
@@ -75,15 +77,25 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
       ? (caches as any).default
       : null;
   if (edgeCache) {
-    const key = new Request(url.toString(), request);
+    const key = new Request(url.toString(), { method: "GET" });
     const hit = await edgeCache.match(key);
     if (hit) return addHeaders(hit, cors);
   }
   console.log("EDGE cache MISS → KV");
 
   /* === ② KV === */
-  const body = (await env.RATES_KV.get("rates")) ?? "{}";
-  console.log(`KV ${body === "{}" ? "MISS" : "HIT"}`);
+  let body = await env.RATES_KV.get("rates");
+
+  if (!body) {
+    console.log("KV MISS → fetch NBU");
+    const nbuRes = await fetch(DEV_FALLBACK_URL, { cf: { cacheTtl: 3600 } });
+    if (!nbuRes.ok) return new Response("NBU fetch failed", { status: 502 });
+
+    body = await nbuRes.text();            // already JSON array string
+    ctx.waitUntil(env.RATES_KV.put("rates", body, { expirationTtl: 86400 }));
+  } else {
+    console.log("KV HIT");
+  }
 
   /* === ③ ETag (weak)  === */
   const etag = await computeEtag(body);
@@ -95,7 +107,6 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
 
   /* === ④ Формуємо відповідь === */
   const resp = jsonResp(body, {
-    "Content-Type": "application/json",
     // Edge + браузер тримають по 24 год, після чого віддають stale і оновлюють у фоні
     "Cache-Control":
       "public, s-maxage=86400, max-age=86400, stale-while-revalidate=86400",

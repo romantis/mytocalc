@@ -14,15 +14,22 @@ const LS_KEY_DATA = 'mytocalccalc:rates';
 const LS_KEY_TS = 'mytocalccalc:rates:ts';
 const TTL_MS = 24 * 60 * 60 * 1_000; // 24 h
 
-/** Raw fetch без кешу (лишилось як було) */
+/** --- network first with graceful fallback --- */
 export async function fetchRates(): Promise<Record<string, number>> {
-  const ratesEndpoint = typeof window === 'undefined'
-    ? new URL('/api/rates', SITE).toString()
-    : '/api/rates';
-  const res = await fetch(ratesEndpoint);
-  if (!res.ok) throw new Error(`NBU API responded ${res.status}`);
-  const data: Rate[] = await res.json();
-  return Object.fromEntries(data.map(({ cc, rate }) => [cc, rate]));
+  const endpoint =
+    typeof window === "undefined"
+      ? new URL("/api/rates", SITE).toString()
+      : "/api/rates";
+
+  const res  = await fetch(endpoint);
+  // якщо CDN/KV ще нічого не має, /api/rates може повернути `{}`.
+  const json = await res.json();
+
+  const list: Rate[] = Array.isArray(json) ? json : await fetch(
+     "https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?json"
+  ).then(r => r.json());
+
+  return Object.fromEntries(list.map(({ cc, rate }) => [cc, rate]));
 }
 
 /** Спроба прочитати кеш ↴ */
@@ -68,8 +75,6 @@ export async function getRates(): Promise<Record<string, number>> {
     return fresh;
   } catch (err) {
     console.error(err);
-    // 3. fallback на build-time JSON
-    // return Object.fromEntries(fallbackRates.map(({ cc, rate }) => [cc, rate])) as Record<string, number>;
     console.log('fallbackFetchFromNBU');
     return fallbackFetchFromNBU();
   }
