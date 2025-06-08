@@ -309,11 +309,11 @@ export default function DutyCalculator(props: DutyCalculatorProps) {
                       }`}>
                         Загальна сума <br/> до доплати
                       </span>
-                      <span class={`text-3xl font-black ${
+                      <output aria-live="polite" class={`text-3xl font-black ${
                         isFree() ? 'text-green-600' : 'text-red-600'
                       }`}>
-                        {formatted().total}
-                      </span>
+                         {isNaN(convertedTotal()) ? "—" : moneyFmt().format(convertedTotal())}
+                      </output>
                     </div>
                   </div>
 
