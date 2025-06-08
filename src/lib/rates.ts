@@ -1,4 +1,8 @@
 // import fallbackRates from '../data/rates.fallback.json'; 
+const SITE   =  (import.meta.env.MODE !== 'development') 
+  ?  import.meta.env.SITE 
+  : `http://localhost:${process.env.PORT ?? 4321}`;
+
 
 export interface Rate {
   cc: string; // 'USD', 'EUR', …
@@ -6,13 +10,16 @@ export interface Rate {
 }
 
 /** --- runtime constants --- */
-const LS_KEY_DATA = 'customscalc:rates';
-const LS_KEY_TS = 'customscalc:rates:ts';
+const LS_KEY_DATA = 'mytocalccalc:rates';
+const LS_KEY_TS = 'mytocalccalc:rates:ts';
 const TTL_MS = 24 * 60 * 60 * 1_000; // 24 h
 
 /** Raw fetch без кешу (лишилось як було) */
 export async function fetchRates(): Promise<Record<string, number>> {
-  const res = await fetch('/api/rates' );
+  const ratesEndpoint = typeof window === 'undefined'
+    ? new URL('/api/rates', SITE).toString()
+    : '/api/rates';
+  const res = await fetch(ratesEndpoint);
   if (!res.ok) throw new Error(`NBU API responded ${res.status}`);
   const data: Rate[] = await res.json();
   return Object.fromEntries(data.map(({ cc, rate }) => [cc, rate]));
@@ -48,16 +55,22 @@ function writeCache(rates: Record<string, number>): void {
 export async function getRates(): Promise<Record<string, number>> {
   // 1. спроба взяти валідний кеш
   const cached = readCache();
-  if (cached) return cached;
+  if (cached) {
+    console.log('Frome cache');
+    return cached
+  };
 
   // 2. спроба отримати live-дані НБУ
   try {
     const fresh = await fetchRates();
     writeCache(fresh);
+    console.log('From /api/rates');
     return fresh;
-  } catch {
+  } catch (err) {
+    console.error(err);
     // 3. fallback на build-time JSON
     // return Object.fromEntries(fallbackRates.map(({ cc, rate }) => [cc, rate])) as Record<string, number>;
+    console.log('fallbackFetchFromNBU');
     return fallbackFetchFromNBU();
   }
 }
