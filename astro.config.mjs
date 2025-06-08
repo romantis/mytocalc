@@ -8,6 +8,7 @@ import AstroPWA from '@vite-pwa/astro';
 // https://astro.build/config
 export default defineConfig({
   site: 'https://mytocalc.com',
+  output: 'server',
   integrations: [
     solidJs(),
     AstroPWA({
