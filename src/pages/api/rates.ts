@@ -2,11 +2,14 @@ export const prerender = false;
 
 import type { APIRoute } from "astro";
 
+type RatesSource = 'KV' | 'EDGE' | 'NBU';
+
+
 const DEV_FALLBACK_URL =
   "https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?json";
 
 /* ---------------- CORS ---------------- */
-const ALLOWED_ORIGINS = import.meta.env.ALLOWED_ORIGINS.split(",")
+const ALLOWED_ORIGINS = (import.meta.env.ALLOWED_ORIGINS || import.meta.env.SITE || "").split(",")
   .map((o: string) => o.trim())
   .filter(Boolean);
 
@@ -59,13 +62,14 @@ export const OPTIONS: APIRoute = ({ request }) =>
 
 /* ------------- GET = самі курси ------------- */
 export const GET: APIRoute = async ({ request, locals, url }) => {
+  let source: RatesSource = "NBU";
   /* 0.  Local dev  → простий proxy на НБУ  ------------------------- */
   if (!locals.runtime /* немає Workers runtime = astro dev */) {
     console.log("local DEV → direct fetch");
     const r = await fetch(DEV_FALLBACK_URL);
     // Щоби локально відразу бачити, що CORS працює так само
     const txt = JSON.stringify(await r.json());
-    return addHeaders(jsonResp(txt), getCorsHeaders(request.headers.get("Origin")));
+    return addHeaders(jsonResp(txt, {"X-Rate-Source": source}), getCorsHeaders(request.headers.get("Origin")));
   }
   const { env, ctx } = locals.runtime;
   const origin = request.headers.get("Origin");
@@ -79,7 +83,7 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
   if (edgeCache) {
     const key = new Request(url.toString(), { method: "GET" });
     const hit = await edgeCache.match(key);
-    if (hit) return addHeaders(hit, cors);
+    if (hit) return addHeaders(hit, {...cors, "X-Rate-Source": "EDGE"});
   }
   console.log("EDGE cache MISS → KV");
 
@@ -113,6 +117,7 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
     ETag: etag,
     Vary: "Origin", // щоб CDN кешував по-різному для різних Origin
     ...cors,
+    "X-Rate-Source": 'KV'
   });
 
   /* === ⑤ Кладемо у Edge-cache асинхронно === */
