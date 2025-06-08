@@ -56,7 +56,7 @@ export async function getRates(): Promise<Record<string, number>> {
   // 1. спроба взяти валідний кеш
   const cached = readCache();
   if (cached) {
-    console.log('Frome cache');
+    console.log('From cache');
     return cached
   };
 
