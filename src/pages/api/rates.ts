@@ -1,6 +1,7 @@
 export const prerender = false;
 
 import type { APIRoute } from "astro";
+import { ALLOWED_ORIGINS } from "astro:env/server";
 
 type RatesSource = 'KV' | 'EDGE' | 'NBU';
 
@@ -9,7 +10,7 @@ const DEV_FALLBACK_URL =
   "https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?json";
 
 /* ---------------- CORS ---------------- */
-const ALLOWED_ORIGINS = (import.meta.env.ALLOWED_ORIGINS || import.meta.env.SITE || "").split(",")
+const allowedOrigins = ALLOWED_ORIGINS.split(",")
   .map((o: string) => o.trim())
   .filter(Boolean);
 
@@ -41,7 +42,7 @@ async function computeEtag(str: string): Promise<string> {
 function getCorsHeaders(
   origin: string | null
 ): Record<string, string> | undefined {
-  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+  if (origin && allowedOrigins.includes(origin)) {
     return {
       "Access-Control-Allow-Origin": origin,
       "Access-Control-Allow-Methods": "GET, OPTIONS",
@@ -62,17 +63,17 @@ export const OPTIONS: APIRoute = ({ request }) =>
 
 /* ------------- GET = самі курси ------------- */
 export const GET: APIRoute = async ({ request, locals, url }) => {
-  let source: RatesSource = "NBU";
+  const origin = request.headers.get("Origin");
+
   /* 0.  Local dev  → простий proxy на НБУ  ------------------------- */
   if (!locals.runtime /* немає Workers runtime = astro dev */) {
     console.log("local DEV → direct fetch");
     const r = await fetch(DEV_FALLBACK_URL);
     // Щоби локально відразу бачити, що CORS працює так само
     const txt = JSON.stringify(await r.json());
-    return addHeaders(jsonResp(txt, {"X-Rate-Source": source}), getCorsHeaders(request.headers.get("Origin")));
+    return addHeaders(jsonResp(txt, {"X-Rate-Source": 'NBU'}), getCorsHeaders(origin));
   }
   const { env, ctx } = locals.runtime;
-  const origin = request.headers.get("Origin");
   const cors = getCorsHeaders(origin);
 
   /* === ① Edge-cache === */
