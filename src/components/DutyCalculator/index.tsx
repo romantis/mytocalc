@@ -3,11 +3,13 @@ import { createSignal, createMemo, createEffect, onMount } from "solid-js";
 import { calcDuty } from "../../lib/calc";
 import type { DutyResult } from "../../lib/calc";
 
+type Currency = 'EUR' | 'USD' |  'UAH';
+
 interface DutyCalculatorProps {
   rates: Record<string, number>;
   /** Optional initial state pulled from URL‑params on SSR */
   initialAmount?: number;
-  initialCurrency?: "EUR" | "USD" | "UAH";
+  initialCurrency?: Currency;
   initialDraftLaw?: boolean;
 }
 
@@ -15,19 +17,48 @@ const EUR = "EUR" as const;
 const USD = "USD" as const;
 const UAH = "UAH" as const;
 
+// Helper functions
+function convertFromEur(valueEur: number, to: Currency, rates: Record<string, number>) {
+  if (to === "EUR") return valueEur;
+  const eurToUah = rates["EUR"];          // 1 EUR → грн
+  if (!eurToUah) return NaN;
+
+  const valueUah = valueEur * eurToUah;   // спершу все у ₴
+
+  if (to === "UAH") return valueUah;
+  const targetRate = rates[to];           // 1 USD → грн, тощо
+  return targetRate ? valueUah / targetRate : NaN;
+}
+
+
 export default function DutyCalculator(props: DutyCalculatorProps) {
   /* ---------------------------- state ---------------------------- */
   
-   const [amount, setAmount] = createSignal<string>(
+  const [amount, setAmount] = createSignal<string>(
     props.initialAmount?.toString() ?? ""
   );
-  const [currency, setCurrency] = createSignal<"EUR" | "USD" | "UAH">(
+  const [currency, setCurrency] = createSignal<Currency>(
     props.initialCurrency ?? EUR
   );
   const [draftLaw, setDraftLaw] = createSignal<boolean>(
     props.initialDraftLaw ?? false
   );
+
+  const [displayCur, setDisplayCur] = createSignal<Currency>("UAH"); // default ₴
+
   const [isAnimating, setIsAnimating] = createSignal(false);
+
+  // const amountUah = createMemo(() => {
+  //   const val = parseFloat(amount());
+  //   if (isNaN(val) || val <= 0) return 0;
+    
+  //   if (currency() === "UAH") return val;
+    
+  //   const rateToUah = props.rates[currency()];
+  //   if (!rateToUah) return 0;
+    
+  //   return (val * rateToUah);
+  // });
 
   const amountEur = createMemo(() => {
     const val = parseFloat(amount());
@@ -43,18 +74,33 @@ export default function DutyCalculator(props: DutyCalculatorProps) {
     return (val * rateToUah) / eurRate;
   });
 
+  
   const duty = createMemo<DutyResult>(() => calcDuty(amountEur(), draftLaw()));
-
-  const fmt = new Intl.NumberFormat("uk-UA", {
-    style: "currency",
-    currency: "EUR",
-    minimumFractionDigits: 2,
+ 
+  const convertedTotal = createMemo(() => {
+    const res = duty(); // duty().total у € (як і раніше)
+    return convertFromEur(res.total, displayCur(), props.rates);
   });
 
+
+  const moneyFmt = createMemo(
+    () =>
+      new Intl.NumberFormat("uk-UA", {
+        style: "currency",
+        currency: displayCur(),
+        minimumFractionDigits: 2,
+      })
+  );
+  // const fmt = new Intl.NumberFormat("uk-UA", {
+  //   style: "currency",
+  //   currency: "UAH",
+  //   minimumFractionDigits: 2,
+  // });
+
   const formatted = createMemo(() => ({
-    duty: fmt.format(duty().duty),
-    vat: fmt.format(duty().vat),
-    total: fmt.format(duty().total),
+    duty: moneyFmt().format(duty().duty),
+    vat: moneyFmt().format(duty().vat),
+    total: moneyFmt().format(duty().total),
   }));
 
   // Sync URL
@@ -63,16 +109,17 @@ export default function DutyCalculator(props: DutyCalculatorProps) {
     if (amount()) q.set("amount", amount());
     if (currency()) q.set("currency", currency());
     if (draftLaw()) q.set("draft", "1");
+    if (displayCur() !== "UAH") q.set("out", displayCur());
     window.history.replaceState({}, "", `?${q.toString()}`);
   };
 
   onMount(() => {
     const q = new URLSearchParams(window.location.search);
     const a = q.get("amount");
-    const c = q.get("currency");
+    const c = q.get("currency") || EUR; // Default to EUR if not specified
     const d = q.get("draft");
     if (a) setAmount(a);
-    if (c && ["EUR", "USD", "UAH"].includes(c)) setCurrency(c);
+    if (c && ["EUR", "USD", "UAH"].includes(c)) setCurrency(c as Currency);
     if (d === "1") setDraftLaw(true);
   });
 
@@ -321,9 +368,5 @@ export default function DutyCalculator(props: DutyCalculatorProps) {
             )}
           </div>
         </div>
-
-        
-
-    
   );
 }
