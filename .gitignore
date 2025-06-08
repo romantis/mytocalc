@@ -26,3 +26,5 @@ pnpm-debug.log*
 # dev-mode service worker
 sw.js
 workbox-*.js
+
+.wrangler/
