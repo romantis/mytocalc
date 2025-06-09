@@ -89,6 +89,7 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
   console.log("EDGE cache MISS → KV");
 
   /* === ② KV === */
+  console.log('[rates] env keys:', Object.keys(env));
   let body = await env.RATES_KV.get("rates");
 
   if (!body) {
