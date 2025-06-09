@@ -89,8 +89,14 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
   console.log("EDGE cache MISS → KV");
 
   /* === ② KV === */
-  console.log('[rates] env keys:', Object.keys(env));
-  let body = await env.RATES_KV.get("rates");
+ const kv = env?.RATES_KV as KVNamespace | undefined;
+
+  let body: string | null = null;
+  if (kv) {
+    body = await kv.get('rates');
+  } else {
+    console.warn("[rates] RATES_KV binding is missing");
+  }
 
   if (!body) {
     console.log("KV MISS → fetch NBU");
