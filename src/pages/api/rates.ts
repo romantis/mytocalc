@@ -21,10 +21,24 @@ function jsonResp(body: string, extra: Record<string, string> = {}) {
   });
 }
 
-function addHeaders(resp: Response, extra: Record<string, string> = {}) {
-  Object.entries(extra).forEach(([k, v]) => resp.headers.set(k, v));
-  return resp;
+/** Merge extra headers into an (immutable) Response */
+function addHeaders(
+  resp: Response,
+  extra: Record<string, string> = {},
+): Response {
+  // Copy headers from the original Response
+  const headers = new Headers(resp.headers);
+
+  // Add or overwrite extra headers
+  for (const [k, v] of Object.entries(extra)) headers.set(k, v);
+  
+  return new Response(resp.body, {
+    status: resp.status,
+    statusText: resp.statusText,
+    headers,
+  });
 }
+
 
 /** Стандартний Web Crypto у Workers для швидкого weak-ETag */
 async function computeEtag(str: string): Promise<string> {
