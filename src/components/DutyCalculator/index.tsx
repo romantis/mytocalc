@@ -76,6 +76,7 @@ export default function DutyCalculator(props: DutyCalculatorProps) {
       new Intl.NumberFormat("uk-UA", {
         style: "currency",
         currency: displayCur(),
+        currencyDisplay: "narrowSymbol",
         minimumFractionDigits: 2,
       })
   );
