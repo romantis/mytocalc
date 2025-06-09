@@ -101,8 +101,14 @@ export default function DutyCalculator(props: DutyCalculatorProps) {
     const a = q.get("amount");
     const c = q.get("currency") || EUR; // Default to EUR if not specified
     const d = q.get("draft");
+    const out = q.get("out");
     if (a) setAmount(a);
     if (c && ["EUR", "USD", "UAH"].includes(c)) setCurrency(c as Currency);
+    if (out && ["EUR", "USD", "UAH"].includes(out)) {
+      setDisplayCur(out as Currency)
+    } else {
+      setDisplayCur("UAH"); // Default to UAH if not specified
+    }
     if (d === "1") setDraftLaw(true);
   });
 
