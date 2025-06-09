@@ -1,9 +1,9 @@
-import { createSignal, createMemo, createEffect, onMount } from "solid-js";
+import { createSignal, createMemo, createEffect, onMount, For } from "solid-js";
 
 import { calcDuty } from "../../lib/calc";
 import type { DutyResult } from "../../lib/calc";
 
-type Currency = 'EUR' | 'USD' |  'UAH';
+type Currency = "UAH" | "EUR" | "USD" | "PLN" | "GBP" | "CNY";
 
 interface DutyCalculatorProps {
   rates: Record<string, number>;
@@ -13,27 +13,41 @@ interface DutyCalculatorProps {
   initialDraftLaw?: boolean;
 }
 
+const UAH = "UAH" as const;
 const EUR = "EUR" as const;
 const USD = "USD" as const;
-const UAH = "UAH" as const;
+const PLN = "PLN" as const;
+const GBP = "GBP" as const;
+const CNY = "CNY" as const;
+const CURRENCIES: Currency[] = [
+  UAH,
+  EUR,
+  USD,
+  PLN,
+  GBP,
+  CNY,
+];
 
 // Helper functions
-function convertFromEur(valueEur: number, to: Currency, rates: Record<string, number>) {
+function convertFromEur(
+  valueEur: number,
+  to: Currency,
+  rates: Record<string, number>
+) {
   if (to === "EUR") return valueEur;
-  const eurToUah = rates["EUR"];          // 1 EUR → грн
+  const eurToUah = rates["EUR"]; // 1 EUR → грн
   if (!eurToUah) return NaN;
 
-  const valueUah = valueEur * eurToUah;   // спершу все у ₴
+  const valueUah = valueEur * eurToUah; // спершу все у ₴
 
   if (to === "UAH") return valueUah;
-  const targetRate = rates[to];           // 1 USD → грн, тощо
+  const targetRate = rates[to]; // 1 USD → грн, тощо
   return targetRate ? valueUah / targetRate : NaN;
 }
 
-
 export default function DutyCalculator(props: DutyCalculatorProps) {
   /* ---------------------------- state ---------------------------- */
-  
+
   const [amount, setAmount] = createSignal<string>(
     props.initialAmount?.toString() ?? ""
   );
@@ -51,25 +65,23 @@ export default function DutyCalculator(props: DutyCalculatorProps) {
   const amountEur = createMemo(() => {
     const val = parseFloat(amount());
     if (isNaN(val) || val <= 0) return 0;
-    
+
     if (currency() === "EUR") return val;
     if (currency() === "UAH") return val / props.rates["EUR"]; // UAH → EUR
-    
+
     const rateToUah = props.rates[currency()];
     const eurRate = props.rates["EUR"];
     if (!rateToUah || !eurRate) return 0;
-    
+
     return (val * rateToUah) / eurRate;
   });
 
-  
   const duty = createMemo<DutyResult>(() => calcDuty(amountEur(), draftLaw()));
- 
+
   const convertedTotal = createMemo(() => {
     const res = duty(); // duty().total у € (як і раніше)
     return convertFromEur(res.total, displayCur(), props.rates);
   });
-
 
   const moneyFmt = createMemo(
     () =>
@@ -104,9 +116,9 @@ export default function DutyCalculator(props: DutyCalculatorProps) {
     const d = q.get("draft");
     const out = q.get("out");
     if (a) setAmount(a);
-    if (c && ["EUR", "USD", "UAH"].includes(c)) setCurrency(c as Currency);
-    if (out && ["EUR", "USD", "UAH"].includes(out)) {
-      setDisplayCur(out as Currency)
+    if (c && CURRENCIES.includes(c as Currency)) setCurrency(c as Currency);
+    if (out && CURRENCIES.includes(out as Currency)) {
+      setDisplayCur(out as Currency);
     } else {
       setDisplayCur("UAH"); // Default to UAH if not specified
     }
@@ -146,11 +158,20 @@ export default function DutyCalculator(props: DutyCalculatorProps) {
   const isFree = () => hasResult() && duty().total === 0;
 
   const getCurrencySymbol = () => {
-    switch (currency()) {
-      case "EUR": return "€";
-      case "USD": return "$";
-      case "UAH": return "₴";
-      default: return "";
+    try {
+      const parts = new Intl.NumberFormat("en", {
+        style: "currency",
+        currency: currency(),
+        currencyDisplay: "narrowSymbol",
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      }).formatToParts(0);
+
+      const symbol = parts.find((p) => p.type === "currency")?.value;
+      return symbol ?? currency(); // fallback: сам код
+    } catch (err) {
+      // Некоректний код або стара JS-рушій
+      return currency();
     }
   };
 
@@ -224,9 +245,13 @@ export default function DutyCalculator(props: DutyCalculatorProps) {
                 value={currency()}
                 onChange={(e) => setCurrency(e.currentTarget.value as Currency)}
               >
+
+                <option value="UAH">₴ Гривня (UAH)</option>
                 <option value="EUR">€ Euro (EUR)</option>
                 <option value="USD">$ Dollar (USD)</option>
-                <option value="UAH">₴ Гривня (UAH)</option>
+                <option value="PLN">zł Złoty (PLN)</option>
+                <option value="GBP">£ Pound (GBP)</option>
+                <option value="CNY">¥ Yuan (CNY)</option>
               </select>
             </div>
 
