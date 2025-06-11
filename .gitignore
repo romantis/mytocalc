@@ -24,7 +24,7 @@ pnpm-debug.log*
 .idea/
 
 # dev-mode service worker
-sw.js
+/dev-dist/sw.js
 workbox-*.js
 
 .wrangler/
