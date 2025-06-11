@@ -1,9 +1,97 @@
-import { createSignal, createMemo, createEffect, onMount, For } from "solid-js";
+import {
+  createSignal,
+  createMemo,
+  createEffect,
+  onMount,
+  onCleanup,
+  Show,
+  type Accessor,
+  For,
+} from "solid-js";
+import { calcDuty, type DutyResult } from "../../lib/calc";
 
-import { calcDuty } from "../../lib/calc";
-import type { DutyResult } from "../../lib/calc";
+type CurrencyMeta = {
+  label: string;
+  narrow: string;
+};
+/** Currency codes supported by the calculator */
+export type Currency = "UAH" | "EUR" | "USD" | "PLN" | "GBP" | "CNY";
+const CURRENCIES: Currency[] = [
+  "UAH",
+  "EUR",
+  "USD",
+  "PLN",
+  "GBP",
+  "CNY",
+] as const;
 
-type Currency = "UAH" | "EUR" | "USD" | "PLN" | "GBP" | "CNY";
+const displayNames = new Intl.DisplayNames(["uk-UA"], {
+  type: "currency",
+});
+
+/** Metadata to drive UI selects / formatting without ad‑hoc switches */
+const CURRENCY_META: Record<Currency, CurrencyMeta> = CURRENCIES.reduce(
+  (acc, cur) => {
+    const narrow = getNarrowSymbol(cur);
+    const name = displayNames.of(cur) ?? cur; // наприклад, "гривня"
+    acc[cur] = {
+      label: `${narrow} ${name} (${cur.toUpperCase()})`,
+      narrow,
+    };
+    return acc;
+  },
+  {} as Record<Currency, { label: string; narrow: string }>
+);
+
+/* -------------------------------------------------------------------------- */
+/*                          Helper utility functions                          */
+/* -------------------------------------------------------------------------- */
+/** Cache Intl.NumberFormat per currency – avoids re‑instantiating on every tick */
+const fmtCache = new Map<Currency, Intl.NumberFormat>();
+function getFormatter(cur: Currency) {
+  if (!fmtCache.has(cur)) {
+    fmtCache.set(
+      cur,
+      new Intl.NumberFormat("uk-UA", {
+        style: "currency",
+        currency: cur,
+        currencyDisplay: "narrowSymbol",
+        minimumFractionDigits: 2,
+      })
+    );
+  }
+  return fmtCache.get(cur)!;
+}
+
+// Get the narrow symbol for a currency
+function getNarrowSymbol(cur: Currency) {
+  // Форматуємо 1 одиницю та вирізаємо цифру й роздільники
+  const formatted = new Intl.NumberFormat("uk-UA", {
+    style: "currency",
+    currency: cur,
+    currencyDisplay: "narrowSymbol",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(1);
+  return formatted.replace(/[\d\s.,\/-]/g, "");
+}
+
+// Helper functions
+/** Convert amount from one currency to another using provided rates */
+function convert(
+  amount: number,
+  from: Currency,
+  to: Currency,
+  rates: Record<Currency, number>
+): number {
+  if (from === to) return amount;
+  const fromRate =
+    from === "EUR" ? rates["EUR"] : from === "UAH" ? 1 : rates[from];
+  const toRate = to === "EUR" ? rates["EUR"] : to === "UAH" ? 1 : rates[to];
+  if (!Number.isFinite(fromRate) || !Number.isFinite(toRate)) return NaN;
+  // amount → UAH → target
+  return (amount * fromRate) / toRate;
+}
 
 interface DutyCalculatorProps {
   rates: Record<string, number>;
@@ -12,47 +100,14 @@ interface DutyCalculatorProps {
   initialCurrency?: Currency;
   initialDraftLaw?: boolean;
 }
-
-const UAH = "UAH" as const;
-const EUR = "EUR" as const;
-const USD = "USD" as const;
-const PLN = "PLN" as const;
-const GBP = "GBP" as const;
-const CNY = "CNY" as const;
-const CURRENCIES: Currency[] = [
-  UAH,
-  EUR,
-  USD,
-  PLN,
-  GBP,
-  CNY,
-];
-
-// Helper functions
-function convertFromEur(
-  valueEur: number,
-  to: Currency,
-  rates: Record<string, number>
-) {
-  if (to === "EUR") return valueEur;
-  const eurToUah = rates["EUR"]; // 1 EUR → грн
-  if (!eurToUah) return NaN;
-
-  const valueUah = valueEur * eurToUah; // спершу все у ₴
-
-  if (to === "UAH") return valueUah;
-  const targetRate = rates[to]; // 1 USD → грн, тощо
-  return targetRate ? valueUah / targetRate : NaN;
-}
-
 export default function DutyCalculator(props: DutyCalculatorProps) {
   /* ---------------------------- state ---------------------------- */
 
-  const [amount, setAmount] = createSignal<string>(
+  const [amountRaw, setAmountRaw] = createSignal<string>(
     props.initialAmount?.toString() ?? ""
   );
   const [currency, setCurrency] = createSignal<Currency>(
-    props.initialCurrency ?? EUR
+    props.initialCurrency ?? "EUR"
   );
   const [draftLaw, setDraftLaw] = createSignal<boolean>(
     props.initialDraftLaw ?? false
@@ -63,7 +118,7 @@ export default function DutyCalculator(props: DutyCalculatorProps) {
   const [isAnimating, setIsAnimating] = createSignal(false);
 
   const amountEur = createMemo(() => {
-    const val = parseFloat(amount());
+    const val = parseFloat(amountRaw());
     if (isNaN(val) || val <= 0) return 0;
 
     if (currency() === "EUR") return val;
@@ -71,76 +126,72 @@ export default function DutyCalculator(props: DutyCalculatorProps) {
 
     const rateToUah = props.rates[currency()];
     const eurRate = props.rates["EUR"];
-    if (!rateToUah || !eurRate) return 0;
-
-    return (val * rateToUah) / eurRate;
+    return rateToUah && eurRate ? (val * rateToUah) / eurRate : 0;
   });
 
   const duty = createMemo<DutyResult>(() => calcDuty(amountEur(), draftLaw()));
-
-  const convertedTotal = createMemo(() => {
-    const res = duty(); // duty().total у € (як і раніше)
-    return convertFromEur(res.total, displayCur(), props.rates);
-  });
-
-  const moneyFmt = createMemo(
-    () =>
-      new Intl.NumberFormat("uk-UA", {
-        style: "currency",
-        currency: displayCur(),
-        currencyDisplay: "narrowSymbol",
-        minimumFractionDigits: 2,
-      })
+  const convertedTotal = createMemo(() =>
+    convert(duty().total, "EUR", displayCur(), props.rates)
   );
 
-  const formatted = createMemo(() => ({
-    duty: moneyFmt().format(duty().duty),
-    vat: moneyFmt().format(duty().vat),
-    total: moneyFmt().format(duty().total),
-  }));
+  const moneyFmt = createMemo(() => getFormatter(displayCur()));
 
-  // Sync URL
+  const formatted = createMemo(() => {
+    const fmt = getFormatter(displayCur());
+    return {
+      duty: fmt.format(duty().duty),
+      vat: fmt.format(duty().vat),
+      total: fmt.format(convertedTotal()),
+    };
+  });
+
+  /* ----------------------------- URL syncing ----------------------------- */
   const syncUrl = () => {
     const q = new URLSearchParams();
-    if (amount()) q.set("amount", amount());
-    if (currency()) q.set("currency", currency());
+    if (amountRaw()) q.set("amount", amountRaw());
+    if (currency() !== "UAH") q.set("currency", currency());
     if (draftLaw()) q.set("draft", "1");
     if (displayCur() !== "UAH") q.set("out", displayCur());
     window.history.replaceState({}, "", `?${q.toString()}`);
   };
 
+  /** Populate initial state from URL once on mount */
   onMount(() => {
     const q = new URLSearchParams(window.location.search);
-    const a = q.get("amount");
-    const c = q.get("currency") || EUR; // Default to EUR if not specified
-    const d = q.get("draft");
+    q.get("amount") && setAmountRaw(q.get("amount")!);
+    const cur = q.get("currency");
     const out = q.get("out");
-    if (a) setAmount(a);
-    if (c && CURRENCIES.includes(c as Currency)) setCurrency(c as Currency);
-    if (out && CURRENCIES.includes(out as Currency)) {
+    if (cur && (cur as Currency) in CURRENCY_META) setCurrency(cur as Currency);
+    if (out && (out as Currency) in CURRENCY_META)
       setDisplayCur(out as Currency);
-    } else {
-      setDisplayCur("UAH"); // Default to UAH if not specified
-    }
-    if (d === "1") setDraftLaw(true);
+    if (q.get("draft") === "1") setDraftLaw(true);
   });
 
-  // Animation trigger
+  /* Trigger share animation on amount change */
+  let animTimer: number | undefined;
   createEffect(() => {
-    if (amount() && parseFloat(amount()) > 0) {
+    clearTimeout(animTimer);
+    if (amountRaw() && parseFloat(amountRaw()) > 0) {
       setIsAnimating(true);
-      setTimeout(() => setIsAnimating(false), 300);
+      animTimer = window.setTimeout(() => setIsAnimating(false), 300);
     }
   });
+  onCleanup(() => clearTimeout(animTimer));
 
-  // URL sync effect
+  /* Re‑sync URL when any public field mutates */
   createEffect(() => {
-    amount();
+    amountRaw();
     currency();
     draftLaw();
+    displayCur();
     syncUrl();
   });
 
+  /* ------------------------------- helpers ------------------------------ */
+  const hasResult = () => amountEur() > 0;
+  const isFree = () => hasResult() && duty().total === 0;
+
+  /* ------------------------------- share ------------------------------- */
   const share = async () => {
     try {
       if (navigator.share) {
@@ -150,140 +201,23 @@ export default function DutyCalculator(props: DutyCalculatorProps) {
         alert("Посилання скопійовано у буфер обміну");
       }
     } catch {
-      // ignore
-    }
-  };
-
-  const hasResult = () => amountEur() > 0;
-  const isFree = () => hasResult() && duty().total === 0;
-
-  const getCurrencySymbol = () => {
-    try {
-      const parts = new Intl.NumberFormat("en", {
-        style: "currency",
-        currency: currency(),
-        currencyDisplay: "narrowSymbol",
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).formatToParts(0);
-
-      const symbol = parts.find((p) => p.type === "currency")?.value;
-      return symbol ?? currency(); // fallback: сам код
-    } catch (err) {
-      // Некоректний код або стара JS-рушій
-      return currency();
+      /* ignore */
     }
   };
 
   return (
     <div class="grid md:grid-cols-2 gap-2 md:gap-8">
       {/* Calculator Form */}
-      <div class="md:space-y-6">
-        <div class="bg-white rounded-3xl p-4 md:p-8 shadow-xl shadow-brand-100/50 border border-brand-100/50">
-          <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
-            <div class="w-8 h-8 bg-brand-100 rounded-lg flex items-center justify-center">
-              <svg
-                class="w-5 h-5 text-brand-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width={2}
-                  d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                />
-              </svg>
-            </div>
-            Розрахунок мита
-          </h2>
 
-          <div class="md:space-y-6 max-md:grid grid-cols-2 gap-2">
-            {/* Amount Input */}
-            <div class="group">
-              <label
-                for="amount"
-                class="block text-sm font-semibold text-gray-700 mb-2"
-              >
-                Вартість товару
-              </label>
-              <div class="relative">
-                <input
-                  id="amount"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="0.00"
-                  class="w-full h-14 rounded-2xl border-2 border-gray-200 px-4 text-lg font-medium 
-                               focus:border-brand-500 focus:ring-4 focus:ring-brand-100 transition-all duration-200
-                               hover:border-gray-300 bg-gray-50/50 focus:bg-white"
-                  value={amount()}
-                  onInput={(e) => setAmount(e.currentTarget.value.slice(0, 12))}
-                />
-                <div class="absolute inset-y-0 right-4 flex items-center pointer-events-none">
-                  <span class="text-gray-400 font-medium">
-                    {getCurrencySymbol()}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Currency Select */}
-            <div class="group">
-              <label
-                for="currency"
-                class="block text-sm font-semibold text-gray-700 mb-2"
-              >
-                Валюта
-              </label>
-              <select
-                id="currency"
-                class="w-full h-14 rounded-2xl border-2 border-gray-200 px-4 text-lg font-medium
-                             focus:border-brand-500 focus:ring-4 focus:ring-brand-100 transition-all duration-200
-                             hover:border-gray-300 bg-gray-50/50 focus:bg-white cursor-pointer"
-                value={currency()}
-                onChange={(e) => setCurrency(e.currentTarget.value as Currency)}
-              >
-
-                <option value="UAH">₴ Гривня (UAH)</option>
-                <option value="EUR">€ Euro (EUR)</option>
-                <option value="USD">$ Dollar (USD)</option>
-                <option value="PLN">zł Złoty (PLN)</option>
-                <option value="GBP">£ Pound (GBP)</option>
-                <option value="CNY">¥ Yuan (CNY)</option>
-              </select>
-            </div>
-
-            {/* Draft Law Toggle */}
-            <div class="bg-amber-50 rounded-2xl p-2 md:p-4 border border-amber-200 col-span-2">
-              <div class="flex items-start gap-4">
-                <div class="flex items-center h-6">
-                  <input
-                    id="draftLaw"
-                    type="checkbox"
-                    checked={draftLaw()}
-                    onChange={(e) => setDraftLaw(e.currentTarget.checked)}
-                    class="w-5 h-5 text-amber-600 border-2 border-amber-300 rounded-md 
-                                 focus:ring-amber-500 focus:ring-2 transition-colors"
-                  />
-                </div>
-                <div class="flex-1">
-                  <label
-                    for="draftLaw"
-                    class="text-sm font-semibold text-amber-800 cursor-pointer"
-                  >
-                    Законопроєкт 2025 року
-                  </label>
-                  <p class="text-xs text-amber-700 mt-1">
-                    ПДВ з першого євро (ще не діє)
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <CalculatorForm
+        amountRaw={amountRaw}
+        currency={currency}
+        draftLaw={draftLaw}
+        onAmount={setAmountRaw}
+        onCurrency={setCurrency}
+        onDraftToggle={setDraftLaw}
+        meta={CURRENCY_META}
+      />
 
       {/* Results */}
       <div class="space-y-6">
@@ -465,6 +399,138 @@ export default function DutyCalculator(props: DutyCalculatorProps) {
             Поділитись результатом
           </button>
         )}
+      </div>
+    </div>
+  );
+}
+
+interface FormProps {
+  amountRaw: Accessor<string>;
+  currency: Accessor<Currency>;
+  draftLaw: Accessor<boolean>;
+  onAmount: (v: string) => void;
+  onCurrency: (c: Currency) => void;
+  onDraftToggle: (v: boolean) => void;
+  meta: typeof CURRENCY_META;
+}
+// CalculatorForm
+function CalculatorForm(props: FormProps) {
+  const {
+    amountRaw,
+    currency,
+    draftLaw,
+    onAmount,
+    onCurrency,
+    onDraftToggle,
+    meta,
+  } = props;
+  const currencyList = Object.entries(CURRENCY_META) as [
+    Currency,
+    CurrencyMeta
+  ][];
+  return (
+    <div class="md:space-y-6">
+      <div class="bg-white rounded-3xl p-4 md:p-8 shadow-xl shadow-brand-100/50 border border-brand-100/50">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+          <div class="w-8 h-8 bg-brand-100 rounded-lg flex items-center justify-center">
+            <svg
+              class="w-5 h-5 text-brand-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width={2}
+                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+              />
+            </svg>
+          </div>
+          Розрахунок мита
+        </h2>
+
+        <div class="md:space-y-6 max-md:grid grid-cols-2 gap-2">
+          {/* Amount Input */}
+          <div class="group">
+            <label
+              for="amount"
+              class="block text-sm font-semibold text-gray-700 mb-2"
+            >
+              Вартість товару
+            </label>
+            <div class="relative">
+              <input
+                id="amount"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="0.00"
+                class="w-full h-14 rounded-2xl border-2 border-gray-200 px-4 text-lg font-medium 
+                               focus:border-brand-500 focus:ring-4 focus:ring-brand-100 transition-all duration-200
+                               hover:border-gray-300 bg-gray-50/50 focus:bg-white"
+                value={amountRaw()}
+                onInput={(e) => onAmount(e.currentTarget.value.slice(0, 12))}
+              />
+              <div class="absolute inset-y-0 right-4 flex items-center pointer-events-none">
+                <span class="text-gray-400 font-medium">
+                  {meta[currency()].narrow}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Currency Select */}
+          <div class="group">
+            <label
+              for="currency"
+              class="block text-sm font-semibold text-gray-700 mb-2"
+            >
+              Валюта
+            </label>
+            <select
+              id="currency"
+              class="w-full h-14 rounded-2xl border-2 border-gray-200 px-4 text-lg font-medium
+                             focus:border-brand-500 focus:ring-4 focus:ring-brand-100 transition-all duration-200
+                             hover:border-gray-300 bg-gray-50/50 focus:bg-white cursor-pointer"
+              value={currency()}
+              onChange={(e) => onCurrency(e.currentTarget.value as Currency)}
+            >
+              <For each={currencyList}>
+                {([curCode, meta]) => (
+                  <option value={curCode}>{meta.label}</option>
+                )}
+              </For>
+            </select>
+          </div>
+
+          {/* Draft Law Toggle */}
+          <div class="bg-amber-50 rounded-2xl p-2 md:p-4 border border-amber-200 col-span-2">
+            <div class="flex items-start gap-4">
+              <div class="flex items-center h-6">
+                <input
+                  id="draftLaw"
+                  type="checkbox"
+                  checked={draftLaw()}
+                  onChange={(e) => onDraftToggle(e.currentTarget.checked)}
+                  class="w-5 h-5 text-amber-600 border-2 border-amber-300 rounded-md 
+                                 focus:ring-amber-500 focus:ring-2 transition-colors"
+                />
+              </div>
+              <div class="flex-1">
+                <label
+                  for="draftLaw"
+                  class="text-sm font-semibold text-amber-800 cursor-pointer"
+                >
+                  Законопроєкт 2025 року
+                </label>
+                <p class="text-xs text-amber-700 mt-1">
+                  ПДВ з першого євро (ще не діє)
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
