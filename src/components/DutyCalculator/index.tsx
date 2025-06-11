@@ -150,7 +150,7 @@ export default function DutyCalculator(props: DutyCalculatorProps) {
   const syncUrl = () => {
     const q = new URLSearchParams();
     if (amountRaw()) q.set("amount", amountRaw());
-    if (currency() !== "UAH") q.set("currency", currency());
+    if (currency()) q.set("currency", currency());
     if (draftLaw()) q.set("draft", "1");
     if (displayCur() !== "UAH") q.set("out", displayCur());
     window.history.replaceState({}, "", `?${q.toString()}`);
