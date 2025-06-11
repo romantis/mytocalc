@@ -1,6 +1,7 @@
 ---
-import DutyCalculator, { type Currency } from '../components/DutyCalculator';
+import DutyCalculator from '../components/DutyCalculator';
 import Layout from '../layouts/Layout.astro';
+import type { Currency } from '../lib/currency';
 import { getRates } from '../lib/rates';
 
 const rates = await getRates();
