@@ -51,10 +51,15 @@ export default function DutyCalculator(props: DutyCalculatorProps) {
   });
 
   const duty = createMemo<DutyResult>(() => calcDuty(amountEur(), draftLaw()));
-  const convertedTotal = createMemo(() =>
-    convert(duty().total, "EUR", displayCur(), props.rates)
-  );
 
+  const converted = createMemo(() => {
+  const cur = displayCur();
+    return {
+      duty: convert(duty().duty,  "EUR", cur, props.rates),
+      vat:  convert(duty().vat,   "EUR", cur, props.rates),
+      total: convert(duty().total,"EUR", cur, props.rates),
+    };
+  });
   const moneyFmt = createMemo(() => getFormatter(displayCur()));
 
   const formatted = createMemo(() => {
@@ -62,7 +67,7 @@ export default function DutyCalculator(props: DutyCalculatorProps) {
     return {
       duty: fmt.format(duty().duty),
       vat: fmt.format(duty().vat),
-      total: fmt.format(convertedTotal()),
+      total: fmt.format(converted().total),
     };
   });
 
@@ -227,13 +232,13 @@ export default function DutyCalculator(props: DutyCalculatorProps) {
                 <div class="flex justify-between items-center py-2 md:py-3 border-b border-gray-100">
                   <span class="text-gray-600 font-medium">Ввізне мито</span>
                   <span class="text-lg font-bold text-gray-900">
-                    {formatted().duty}
+                    {moneyFmt().format(converted().duty)}
                   </span>
                 </div>
                 <div class="flex justify-between items-center py-2 md:py-3 border-b border-gray-100">
                   <span class="text-gray-600 font-medium">ПДВ (20%)</span>
                   <span class="text-lg font-bold text-gray-900">
-                    {formatted().vat}
+                    {moneyFmt().format(converted().vat)}
                   </span>
                 </div>
               </div>
@@ -260,9 +265,9 @@ export default function DutyCalculator(props: DutyCalculatorProps) {
                       isFree() ? "text-green-600" : "text-red-600"
                     }`}
                   >
-                    {isNaN(convertedTotal())
+                    {isNaN(converted().total)
                       ? "—"
-                      : moneyFmt().format(convertedTotal())}
+                      : moneyFmt().format(converted().total)}
                   </output>
                 </div>
               </div>
