@@ -109,6 +109,7 @@ export default function DutyCalculator(props: DutyCalculatorProps) {
   const [currency, setCurrency] = createSignal<Currency>(
     props.initialCurrency ?? "EUR"
   );
+
   const [draftLaw, setDraftLaw] = createSignal<boolean>(
     props.initialDraftLaw ?? false
   );
@@ -498,7 +499,12 @@ function CalculatorForm(props: FormProps) {
             >
               <For each={currencyList}>
                 {([curCode, meta]) => (
-                  <option value={curCode}>{meta.label}</option>
+                  <option 
+                    value={curCode}
+                    selected={curCode === currency()}
+                    >
+                    {meta.label}
+                  </option>
                 )}
               </For>
             </select>

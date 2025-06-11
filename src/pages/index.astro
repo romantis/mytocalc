@@ -1,16 +1,23 @@
 ---
-import DutyCalculator from '../components/DutyCalculator';
+import DutyCalculator, { type Currency } from '../components/DutyCalculator';
 import Layout from '../layouts/Layout.astro';
 import { getRates } from '../lib/rates';
 
 const rates = await getRates();
+
+const url = new URL(Astro.request.url);
+const q = url.searchParams;
+
+const initialAmount = parseFloat(q.get('amount') ?? '150');
+const initialCurrency = q.get('currency')?.toUpperCase() || 'EUR';
+const initialDraft = q.get('draft') === '1';
 ---
 
 <Layout>
 	<DutyCalculator 
 		rates={rates}
-		initialAmount={150}
-		initialCurrency="EUR"
-		initialDraftLaw={false}
+		initialAmount={Number.isFinite(initialAmount) ? initialAmount : undefined}
+		initialCurrency={initialCurrency as Currency}
+		initialDraftLaw={initialDraft}
 		client:load />
 </Layout>
