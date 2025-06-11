@@ -158,7 +158,7 @@ export default function DutyCalculator(props: DutyCalculatorProps) {
           } ${isAnimating() ? "scale-[1.02]" : "scale-100"}`}
         >
           <div class="flex items-center justify-between mb-3 md:mb-6">
-            <h3 class="text-2xl font-bold text-gray-900 flex items-center gap-2 md:gap-3">
+            <h2 class="text-2xl font-bold text-gray-900 flex items-center gap-2 md:gap-3">
               <div
                 class={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
                   hasResult()
@@ -189,7 +189,7 @@ export default function DutyCalculator(props: DutyCalculatorProps) {
                 </svg>
               </div>
               Результат
-            </h3>
+            </h2>
 
             <Show when={hasResult()}>
               <div
@@ -360,7 +360,7 @@ function CalculatorForm(props: FormProps) {
   return (
     <div class="md:space-y-6">
       <div class="bg-white rounded-3xl p-4 md:p-8 shadow-xl shadow-brand-100/50 border border-brand-100/50">
-        <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+        <h2 class="max-sm:hidden md:text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
           <div class="w-8 h-8 bg-brand-100 rounded-lg flex items-center justify-center">
             <svg
               class="w-5 h-5 text-brand-600"
