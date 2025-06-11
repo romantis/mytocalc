@@ -191,7 +191,7 @@ export default function DutyCalculator(props: DutyCalculatorProps) {
               Результат
             </h3>
 
-            {hasResult() && (
+            <Show when={hasResult()}>
               <div
                 class={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
                   isFree()
@@ -201,31 +201,34 @@ export default function DutyCalculator(props: DutyCalculatorProps) {
               >
                 {isFree() ? "Безкоштовно" : "Є платежі"}
               </div>
-            )}
+            </Show>
           </div>
 
-          {!hasResult() ? (
-            <div class="text-center py-6 md:py-12">
-              <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg
-                  class="w-8 h-8 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width={2}
-                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                  />
-                </svg>
+          <Show
+            when={hasResult()}
+            fallback={
+              <div class="text-center py-6 md:py-12">
+                <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg
+                    class="w-8 h-8 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width={2}
+                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                    />
+                  </svg>
+                </div>
+                <p class="text-gray-500 font-medium">
+                  Введіть суму для розрахунку
+                </p>
               </div>
-              <p class="text-gray-500 font-medium">
-                Введіть суму для розрахунку
-              </p>
-            </div>
-          ) : (
+            }
+          >
             <div class="space-y-2 md:space-y-4">
               {/* Breakdown */}
               <div class="space-y-3">
@@ -273,7 +276,7 @@ export default function DutyCalculator(props: DutyCalculatorProps) {
               </div>
 
               {/* Info */}
-              {isFree() && (
+              <Show when={isFree()}>
                 <div class="bg-brand-50 rounded-xl p-4 border border-brand-200">
                   <div class="flex gap-3">
                     <svg
@@ -295,13 +298,13 @@ export default function DutyCalculator(props: DutyCalculatorProps) {
                     </p>
                   </div>
                 </div>
-              )}
+              </Show>
             </div>
-          )}
+          </Show>
         </div>
 
         {/* Share Button */}
-        {hasResult() && (
+        <Show when={hasResult()}>
           <button
             onClick={share}
             class="w-full bg-gradient-to-r from-brand-600 to-sky-600 hover:from-brand-700 hover:to-sky-700 
@@ -324,7 +327,7 @@ export default function DutyCalculator(props: DutyCalculatorProps) {
             </svg>
             Поділитись результатом
           </button>
-        )}
+        </Show>
       </div>
     </div>
   );
