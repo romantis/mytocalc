@@ -1,0 +1,70 @@
+---
+import Layout from "../layouts/Layout.astro";
+import notFoundImage from "../assets/confused-person-with-laptop.png";
+
+const title= "404 - Page Not Found | MytoCalc"
+const description= "Oops! We can't find the page you're looking for. Don't worry though - our data might get confused sometimes, but we're here to help!"
+const keywords= "404, page not found, Mytocalc, error page"
+---
+
+<Layout>
+  <div class=" bg-white">
+    {/* Header with Brand Colors */}
+    <div class="mb-10 pb-6">
+      <div class="bg-brand-500 px-6 py-5 text-center">
+        <h1 class="text-3xl font-bold text-white">404 - Сторінка Не Знайдена</h1>
+        <p class="text-brand-50 mt-2">
+          Йой! Ми не змогли знайти сторінку яку ви шукали.
+        </p>
+      </div>
+      <div
+        class="bg-gray-50 p-4 rounded-b-lg border-x border-b border-gray-200 flex items-center justify-center"
+      >
+        <div class="bg-brand-100 p-2 rounded-full mr-3">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-6 w-6 text-brand-600"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width={2}
+              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            ></path>
+          </svg>
+        </div>
+        <div>
+          <p class="font-semibold text-brand-700 text-2xl">MytoCalc</p>
+        </div>
+      </div>
+    </div>
+
+    {/* Main Content */}
+    <div class="mb-10 text-center">
+      <div class="flex justify-center mb-8">
+        
+      </div>
+
+      <h2 class="text-2xl font-bold text-gray-800 mb-4">
+        Хотіли порахувати вартість мита?
+      </h2>
+      <p class="text-lg text-gray-600 max-w-xl mx-auto mb-8">
+        
+        Тоді ви потрапили трошки не туди. Не хвилюйтесь!
+        Клікніть на кнопку нижче, щоб повернутися на головну сторінку і продовжити розрахунок мита.
+      </p>
+
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <a
+          href="/"
+          class="inline-block bg-brand-400 text-white font-semibold px-6 py-3 rounded-lg shadow-lg hover:bg-sky-600 transition duration-200"
+        >
+          Калькулятор Мита
+        </a>
+      </div>
+    </div>
+  </div>
+</Layout>
