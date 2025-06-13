@@ -9,7 +9,7 @@ type HowItWorksKey = keyof typeof dict;
 
 const t = (key: HowItWorksKey) => dict[key] ?? key;
 
-const currentPath = Astro.url.pathname;
+const isActive = (l: Locale) => l === lang;
 
 ---
 <header
@@ -41,11 +41,17 @@ const currentPath = Astro.url.pathname;
     </div>
     <nav aria-label="Language selector" class="flex items-center gap-4 mt-2 text-sm text-gray-700">
       <a href="/" 
-        aria-current={currentPath === '/' ? 'page' : undefined}
-        class:list={[{'pointer-events-none font-bold text-brand-500': currentPath === '/'}]}>UK</a> |
+        aria-current={isActive('uk') ? 'page' : undefined}
+        class="hover:text-brand-500 transition-colors duration-200 hover:font-bold"
+        class:list={[{'pointer-events-none font-bold text-brand-500': isActive('uk')}]}
+        lang="uk" hreflang="uk"
+        >UA</a> |
       <a href="/en"
-        aria-current={currentPath === '/en' ? 'page' : undefined}
-        class:list={[{'pointer-events-none font-bold text-brand-500': currentPath === '/en'}]}>EN</a>
+        aria-current={isActive('en') ? 'page' : undefined}
+        class="hover:text-brand-500 transition-colors duration-200 hover:font-bold"
+        class:list={[{'pointer-events-none font-bold text-brand-500': isActive('en')}]}
+        lang="en" hreflang="en"
+        >EN</a>
     </nav>
 
   </div>
