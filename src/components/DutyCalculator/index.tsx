@@ -361,6 +361,12 @@ function CalculatorForm(props: FormProps) {
     Currency,
     CurrencyMeta
   ][];
+  let amountRef!: HTMLInputElement;
+  onMount(() => {
+    if (!amountRaw()) {
+      amountRef.focus();
+    }
+  });
   return (
     <div class="md:space-y-6">
       <div class="bg-white rounded-3xl p-4 md:p-8 shadow-xl shadow-brand-100/50 border border-brand-100/50">
@@ -394,6 +400,7 @@ function CalculatorForm(props: FormProps) {
             </label>
             <div class="relative">
               <input
+                ref={amountRef!}
                 id="amount"
                 type="number"
                 min="0"

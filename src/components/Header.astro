@@ -1,10 +1,6 @@
 ---
 import { fetchDictionary, type Locale} from '../i18n/i18n';
-import {
-  getRelativeLocaleUrlList,
- } from 'astro:i18n';
 
-console.log(`getRelativeLocaleUrlList:`, getRelativeLocaleUrlList());
 const lang = Astro.props.lang;;
 
 const dict = await fetchDictionary(lang as Locale);
@@ -43,8 +39,8 @@ const currentPath = Astro.url.pathname;
       </div>
     </div>
     <ul class="flex items-center gap-4 mt-2 text-sm text-gray-700">
-      <li><a href="/" class:list={[{'font-bold': currentPath === '/'}]}>UK</a></li>|
-      <li><a href="/en" class:list={[{'font-bold': currentPath === '/en'}]}>EN</a></li>
+      <li><a href="/" class:list={[{'font-bold text-brand-500': currentPath === '/'}]}>UK</a></li>|
+      <li><a href="/en" class:list={[{'font-bold text-brand-500': currentPath === '/en'}]}>EN</a></li>
     </ul>
   </div>
 </header>

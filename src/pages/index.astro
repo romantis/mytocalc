@@ -11,7 +11,10 @@ const rates = await getRates();
 const url = new URL(Astro.request.url);
 const q = url.searchParams;
 
-const initialAmount = parseFloat(q.get('amount') ?? '150');
+const qAmount = parseFloat(q.get('amount') || '');
+const initialAmount: number | undefined = Number.isFinite(qAmount) 
+	? qAmount 
+	: undefined;
 const initialCurrency = q.get('currency')?.toUpperCase() || 'EUR';
 const initialDraft = q.get('draft') === '1';
 ---
@@ -20,7 +23,7 @@ const initialDraft = q.get('draft') === '1';
 	<div class="max-w-4xl mx-auto p-2 md:px-4 md:py-8">
 		<DutyCalculator 
 			rates={rates}
-			initialAmount={Number.isFinite(initialAmount) ? initialAmount : undefined}
+			initialAmount={initialAmount}
 			initialCurrency={initialCurrency as Currency}
 			initialDraftLaw={initialDraft}
 			lang={LANG}
