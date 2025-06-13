@@ -35,13 +35,18 @@ const currentPath = Astro.url.pathname;
         </svg>
       </div>
       <div>
-        <h1 class="text-xl font-bold text-gray-900">MytoCalc</h1>
+        <span class="text-xl font-bold text-gray-900">MytoCalc</span>
         <p class="text-sm text-gray-600">{t('title')}</p>
       </div>
     </div>
-    <ul class="flex items-center gap-4 mt-2 text-sm text-gray-700">
-      <li><a href="/" class:list={[{'pointer-events-none font-bold text-brand-500': currentPath === '/'}]}>UK</a></li>|
-      <li><a href="/en" class:list={[{'pointer-events-none font-bold text-brand-500': currentPath === '/en'}]}>EN</a></li>
-    </ul>
+    <nav aria-label="Language selector" class="flex items-center gap-4 mt-2 text-sm text-gray-700">
+      <a href="/" 
+        aria-current={currentPath === '/' ? 'page' : undefined}
+        class:list={[{'pointer-events-none font-bold text-brand-500': currentPath === '/'}]}>UK</a> |
+      <a href="/en"
+        aria-current={currentPath === '/en' ? 'page' : undefined}
+        class:list={[{'pointer-events-none font-bold text-brand-500': currentPath === '/en'}]}>EN</a>
+    </nav>
+
   </div>
 </header>
