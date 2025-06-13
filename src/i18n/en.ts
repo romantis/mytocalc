@@ -1,6 +1,6 @@
 
 export const dict = {
-  title: "Customs Duty Calculator for Imports to Ukraine",
+  title: "Ukraine Customs Duty Calculator",
   calc_title: "Duty calculator",
   price_label: "Declared value",
   currency: "Currency",

@@ -15,12 +15,15 @@ const initialAmount = parseFloat(q.get('amount') ?? '150');
 const initialCurrency = q.get('currency')?.toUpperCase() || 'EUR';
 const initialDraft = q.get('draft') === '1';
 
-const pageTitle = "MytoCalc – Customs Duty Calculator for Imports to Ukraine";
-const pageDescription = `Quickly calculate customs duty and VAT for imported goods to Ukraine. Up-to-date rules, NBU exchange rate, UA / EN interface, open API.`;
-const pageKeywords = `mytocalc, customs duty calculator, import VAT, Ukraine, import goods, duty calculator`;
+const pageTitle = "MytoCalc – Ukraine Customs Duty & VAT Calculator";
+const pageKeywords = `mytocalc, customs duty calculator, import duty calculator, VAT calculator, Ukraine import tax, duty and VAT, online import calculator, Ukraine customs`;
 ---
 
-<Layout lang={LANG} title={pageTitle} description={pageDescription} keywords={pageKeywords}>
+<Layout 
+	lang={LANG} 
+	title={pageTitle} 
+	keywords={pageKeywords}
+	>
 	<div class="max-w-4xl mx-auto p-2 md:px-4 md:py-8">
 		<DutyCalculator 
 			rates={rates}

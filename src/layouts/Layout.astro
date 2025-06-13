@@ -1,17 +1,52 @@
 ---
 import "../styles/global.css";
 import Header from '../components/Header.astro';
+import type { Locale } from "../i18n/i18n";
 
-const lang = Astro.props.lang || 'uk';
+const lang = (Astro.props.lang || 'uk') as Locale;
 
 const pageTitle =
-  Astro.props.title || "MytoCalc – митний калькулятор імпортних посилок";
-const pageDescription =
-  Astro.props.description ||
-  `Швидко розрахуйте мито та ПДВ на імпортні товари в Україну. Актуальні правила, курс НБУ, UA / EN інтерфейс, відкритий API.`;
+  Astro.props.title || "MytoCalc – Калькулятор мита та ПДВ для імпорту";
+// const pageDescription =
+//   Astro.props.description ||
+//   `Розрахуйте мито та ПДВ на імпорт до України за секунди. Актуальні ставки, автоматичний курс валют і зручний UA / EN інтерфейс.`;
+// const socialMediaDescription =
+//   Astro.props.socialMediaDescription ||
+//   "Онлайн-калькулятор MytoCalc миттєво рахує мито й ПДВ для імпорту в Україну. Зрозумій, скільки заплатиш, перш ніж замовляти товар. Спробуй!";
+
+const descriptions = {
+  uk: {
+    seo: "Розрахуйте мито та ПДВ на імпорт до України за секунди. Актуальні ставки, автоматичний курс валют і зручний UA/EN інтерфейс.",
+    social: "Онлайн-калькулятор MytoCalc миттєво рахує мито й ПДВ для імпорту в Україну. Зрозумій, скільки заплатиш, перш ніж замовляти товар. Спробуй за секунду!"
+  },
+  en: {
+    seo: "Calculate customs duty and VAT for imports to Ukraine in seconds. Live rates, automatic currency conversion, and a simple UA/EN interface.",
+    social: "MytoCalc instantly estimates customs duty & VAT when shipping goods to Ukraine. Know the total cost before you buy — try the calculator now!"
+  }
+};
+const { seo, social } = descriptions[lang];
+  
 const pageKeywords =
   Astro.props.keywords ||
-  `mytocalc, митний калькулятор, калькулятор мита, ПДВ, імпорт товарів, customs duty calculator, import VAT, Ukraine`;
+  `mytocalc, калькулятор мита, калькулятор митних платежів, ПДВ калькулятор, розрахунок мита, імпорт в Україну, мито та ПДВ, онлайн калькулятор мита`;
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Calculator",
+  "name": "MytoCalc",
+  "url": Astro.site,
+  "description": social,
+  "inLanguage": lang === "uk" ? "uk-UA" : "en-US",
+  "applicationCategory": "FinanceApplication",
+  "offers": {
+    "@type": "Offer",
+    "price": "0.00",
+    "priceCurrency": "USD",
+    "availability": "https://schema.org/InStock"
+  },
+  "image": "https://mytocalc.com/og-cover.png"
+};
+
 ---
 
 <!doctype html>
@@ -27,7 +62,7 @@ const pageKeywords =
     <meta name="generator" content={Astro.generator} />
 
     <title>{pageTitle}</title>
-    <meta name="description" content={pageDescription} />
+    <meta name="description" content={seo} />
     <meta name="keywords" content={pageKeywords} />
     <meta name="author" content="Metric Harmony" />
     <link rel="canonical" href="https://mytocalc.com/" />
@@ -43,7 +78,7 @@ const pageKeywords =
     <meta property="og:title" content={pageTitle} />
     <meta
       property="og:description"
-      content="Дізнайся суму мита та ПДВ ще до покупки. Безкоштовно, точно, прозоро."
+      content={social}
     />
     <meta property="og:url" content="https://mytocalc.com/" />
     <meta property="og:image" content="https://mytocalc.com/og-cover.png" />
@@ -58,29 +93,16 @@ const pageKeywords =
     <meta name="twitter:title" content={pageTitle} />
     <meta
       name="twitter:description"
-      content="Розрахуйте мито та ПДВ на імпортні товари в Україну за секунду."
+      content={social}
     />
     <meta name="twitter:image" content="https://mytocalc.com/og-cover.png" />
 
     <!-- === Schema.org (JSON-LD) === -->
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "Calculator",
-        "name": "MytoCalc",
-        "url": "https://mytocalc.com/",
-        "description": "Онлайн-калькулятор митних платежів (мито + ПДВ) для імпортних посилок в Україну.",
-        "inLanguage": ["uk", "en"],
-        "applicationCategory": "FinanceApplication",
-        "offers": {
-          "@type": "Offer",
-          "price": "0.00",
-          "priceCurrency": "USD",
-          "availability": "https://schema.org/InStock"
-        },
-        "image": "https://mytocalc.com/og-cover.png"
-      }
-    </script>
+  <script 
+    type="application/ld+json" 
+    set:html={JSON.stringify(jsonLd).replaceAll('</', '<\\/')}
+    ></script>
+
   </head>
   <body>
     <div class="min-h-screen bg-gradient-to-br from-brand-50 via-white to-sky-50">

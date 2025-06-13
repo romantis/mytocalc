@@ -1,5 +1,5 @@
 export const dict = {
-  title: "Калькулятор митних платежів",
+  title: "Калькулятор мита та ПДВ",
   calc_title: "Розрахунок мита",
   price_label: "Вартість товару",
   currency: "Валюта",
