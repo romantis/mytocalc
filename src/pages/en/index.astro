@@ -1,0 +1,35 @@
+---
+import DutyCalculator from '../../components/DutyCalculator';
+import HowItWorks from '../../components/HowItWorks.astro';
+import Layout from '../../layouts/Layout.astro';
+import type { Currency } from '../../lib/currency';
+import { getRates } from '../../lib/rates';
+
+const LANG = 'en';
+const rates = await getRates();
+
+const url = new URL(Astro.request.url);
+const q = url.searchParams;
+
+const initialAmount = parseFloat(q.get('amount') ?? '150');
+const initialCurrency = q.get('currency')?.toUpperCase() || 'EUR';
+const initialDraft = q.get('draft') === '1';
+
+const pageTitle = "MytoCalc – Customs Duty Calculator for Imports to Ukraine";
+const pageDescription = `Quickly calculate customs duty and VAT for imported goods to Ukraine. Up-to-date rules, NBU exchange rate, UA / EN interface, open API.`;
+const pageKeywords = `mytocalc, customs duty calculator, import VAT, Ukraine, import goods, duty calculator`;
+---
+
+<Layout lang={LANG} title={pageTitle} description={pageDescription} keywords={pageKeywords}>
+	<div class="max-w-4xl mx-auto p-2 md:px-4 md:py-8">
+		<DutyCalculator 
+			rates={rates}
+			initialAmount={Number.isFinite(initialAmount) ? initialAmount : undefined}
+			initialCurrency={initialCurrency as Currency}
+			initialDraftLaw={initialDraft}
+			lang={LANG}
+			client:load />
+	</div>
+
+	<HowItWorks lang={LANG} />
+</Layout>

@@ -7,11 +7,15 @@ import {
   Show,
   type Accessor,
   For,
+  createResource,
 } from "solid-js";
+import {translator, type NullableTranslator} from '@solid-primitives/i18n';
+
 import { calcDuty, type DutyResult } from "../../lib/calc";
-import { convert, CURRENCY_META, getFormatter, type Currency, type CurrencyMeta } from "../../lib/currency";
+import { convert, getCurrencyMeta, getMoneyFormatter, type Currency, type CurrencyMeta } from "../../lib/currency";
+import { fetchDictionary, type Dictionary, type Locale } from "../../i18n/i18n";
 
-
+// const dicts = { uk: flatten(uk), en: flatten(en) };
 
 interface DutyCalculatorProps {
   rates: Record<string, number>;
@@ -19,9 +23,16 @@ interface DutyCalculatorProps {
   initialAmount?: number;
   initialCurrency?: Currency;
   initialDraftLaw?: boolean;
+  lang?: Locale; // default: 'uk'
 }
 export default function DutyCalculator(props: DutyCalculatorProps) {
   /* ---------------------------- state ---------------------------- */
+  const [lang] = createSignal(props.lang ?? 'uk');
+  const locale = createMemo(() => lang() === 'uk' ? 'uk-UA' : 'en-US');
+  const currencyMeta = createMemo(() => getCurrencyMeta(locale()));
+  const [dict] = createResource(lang, fetchDictionary);
+  dict();
+  const t = translator(dict);
 
   const [amountRaw, setAmountRaw] = createSignal<string>(
     props.initialAmount?.toString() ?? ""
@@ -60,16 +71,7 @@ export default function DutyCalculator(props: DutyCalculatorProps) {
       total: convert(duty().total,"EUR", cur, props.rates),
     };
   });
-  const moneyFmt = createMemo(() => getFormatter(displayCur()));
-
-  const formatted = createMemo(() => {
-    const fmt = getFormatter(displayCur());
-    return {
-      duty: fmt.format(duty().duty),
-      vat: fmt.format(duty().vat),
-      total: fmt.format(converted().total),
-    };
-  });
+  const moneyFmt = createMemo(() => getMoneyFormatter(displayCur(), locale()));
 
   /* ----------------------------- URL syncing ----------------------------- */
   const syncUrl = () => {
@@ -87,8 +89,8 @@ export default function DutyCalculator(props: DutyCalculatorProps) {
     q.get("amount") && setAmountRaw(q.get("amount")!);
     const cur = q.get("currency");
     const out = q.get("out");
-    if (cur && (cur as Currency) in CURRENCY_META) setCurrency(cur as Currency);
-    if (out && (out as Currency) in CURRENCY_META)
+    if (cur && (cur as Currency) in currencyMeta()) setCurrency(cur as Currency);
+    if (out && (out as Currency) in currencyMeta())
       setDisplayCur(out as Currency);
     if (q.get("draft") === "1") setDraftLaw(true);
   });
@@ -135,15 +137,16 @@ export default function DutyCalculator(props: DutyCalculatorProps) {
     <div class="grid md:grid-cols-2 gap-2 md:gap-8">
       {/* Calculator Form */}
 
-      <CalculatorForm
-        amountRaw={amountRaw}
-        currency={currency}
-        draftLaw={draftLaw}
-        onAmount={setAmountRaw}
-        onCurrency={setCurrency}
-        onDraftToggle={setDraftLaw}
-        meta={CURRENCY_META}
-      />
+        <CalculatorForm
+          amountRaw={amountRaw}
+          currency={currency}
+          draftLaw={draftLaw}
+          onAmount={setAmountRaw}
+          onCurrency={setCurrency}
+          onDraftToggle={setDraftLaw}
+          meta={currencyMeta()}
+          t={t}
+        />
 
       {/* Results */}
       <div class="space-y-6">
@@ -188,7 +191,7 @@ export default function DutyCalculator(props: DutyCalculatorProps) {
                   />
                 </svg>
               </div>
-              Результат
+              {t('result')}
             </h2>
 
             <Show when={hasResult()}>
@@ -199,7 +202,7 @@ export default function DutyCalculator(props: DutyCalculatorProps) {
                     : "bg-red-100 text-red-800"
                 }`}
               >
-                {isFree() ? "Безкоштовно" : "Є платежі"}
+                {isFree() ? t('free') : t('has_pay')}
               </div>
             </Show>
           </div>
@@ -224,7 +227,7 @@ export default function DutyCalculator(props: DutyCalculatorProps) {
                   </svg>
                 </div>
                 <p class="text-gray-500 font-medium">
-                  Введіть суму для розрахунку
+                  {t('enter_value')}
                 </p>
               </div>
             }
@@ -233,13 +236,13 @@ export default function DutyCalculator(props: DutyCalculatorProps) {
               {/* Breakdown */}
               <div class="space-y-3">
                 <div class="flex justify-between items-center py-2 md:py-3 border-b border-gray-100">
-                  <span class="text-gray-600 font-medium">Ввізне мито</span>
+                  <span class="text-gray-600 font-medium">{t('import_duty')}</span>
                   <span class="text-lg font-bold text-gray-900">
                     {moneyFmt().format(converted().duty)}
                   </span>
                 </div>
                 <div class="flex justify-between items-center py-2 md:py-3 border-b border-gray-100">
-                  <span class="text-gray-600 font-medium">ПДВ (20%)</span>
+                  <span class="text-gray-600 font-medium">{t('vat')}</span>
                   <span class="text-lg font-bold text-gray-900">
                     {moneyFmt().format(converted().vat)}
                   </span>
@@ -260,7 +263,7 @@ export default function DutyCalculator(props: DutyCalculatorProps) {
                       isFree() ? "text-green-800" : "text-red-800"
                     }`}
                   >
-                    Загальна сума <br /> до доплати
+                    {t('total')}
                   </span>
                   <output
                     aria-live="polite"
@@ -293,8 +296,7 @@ export default function DutyCalculator(props: DutyCalculatorProps) {
                       />
                     </svg>
                     <p class="text-sm text-brand-800">
-                      Ваше замовлення не перевищує ліміт в 150€, тому додаткові
-                      платежі не нараховуються.
+                      {t('no_duty_message')}
                     </p>
                   </div>
                 </div>
@@ -325,7 +327,7 @@ export default function DutyCalculator(props: DutyCalculatorProps) {
                 d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"
               />
             </svg>
-            Поділитись результатом
+            {t('share')}
           </button>
         </Show>
       </div>
@@ -340,7 +342,8 @@ interface FormProps {
   onAmount: (v: string) => void;
   onCurrency: (c: Currency) => void;
   onDraftToggle: (v: boolean) => void;
-  meta: typeof CURRENCY_META;
+  meta: Record<Currency, CurrencyMeta>;
+  t: NullableTranslator<Dictionary>
 }
 // CalculatorForm
 function CalculatorForm(props: FormProps) {
@@ -352,8 +355,9 @@ function CalculatorForm(props: FormProps) {
     onCurrency,
     onDraftToggle,
     meta,
+    t
   } = props;
-  const currencyList = Object.entries(CURRENCY_META) as [
+  const currencyList = Object.entries(meta) as [
     Currency,
     CurrencyMeta
   ][];
@@ -376,7 +380,7 @@ function CalculatorForm(props: FormProps) {
               />
             </svg>
           </div>
-          Розрахунок мита
+          {t('calc_title')}
         </h2>
 
         <div class="md:space-y-6 max-md:grid grid-cols-2 gap-2">
@@ -386,7 +390,7 @@ function CalculatorForm(props: FormProps) {
               for="amount"
               class="block text-sm font-semibold text-gray-700 mb-2"
             >
-              Вартість товару
+              {t('price_label')}
             </label>
             <div class="relative">
               <input
@@ -415,7 +419,7 @@ function CalculatorForm(props: FormProps) {
               for="currency"
               class="block text-sm font-semibold text-gray-700 mb-2"
             >
-              Валюта
+              {t('currency')}
             </label>
             <select
               id="currency"
@@ -456,10 +460,10 @@ function CalculatorForm(props: FormProps) {
                   for="draftLaw"
                   class="text-sm font-semibold text-amber-800 cursor-pointer"
                 >
-                  Законопроєкт 2025 року
+                  {t('draft_label')}
                 </label>
                 <p class="text-xs text-amber-700 mt-1">
-                  ПДВ з першого євро (ще не діє)
+                  {t('draft_explanation')} ({t('draft_label_status')})
                 </p>
               </div>
             </div>

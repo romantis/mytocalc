@@ -13,6 +13,7 @@
     "@astrojs/cloudflare": "^12.5.3",
     "@astrojs/sitemap": "^3.4.1",
     "@astrojs/solid-js": "^5.1.0",
+    "@solid-primitives/i18n": "^2.2.1",
     "@tailwindcss/typography": "^0.5.16",
     "@tailwindcss/vite": "^4.1.8",
     "astro": "^5.8.1",

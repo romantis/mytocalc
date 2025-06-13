@@ -25,4 +25,9 @@ export default defineConfig({
       ALLOWED_ORIGINS: envField.string({ context: "server", access: "public" }),
     },
   },
+  i18n: {
+    locales: ["uk", "en"],
+    defaultLocale: "uk",
+    routing: { prefixDefaultLocale: false }, // / і /en/
+  },
 });
