@@ -1,0 +1,41 @@
+---
+import DirectEmail from "../components/DirectEmail.tsx";
+import { fetchDictionary, type Locale } from "../i18n/i18n";
+const thisYear = new Date().getFullYear();
+
+const lang = Astro.props.lang;
+
+const dict = await fetchDictionary(lang as Locale);
+
+type HowItWorksKey = keyof typeof dict;
+
+const t = (key: HowItWorksKey) => dict[key] ?? key;
+---
+
+<footer class="bg-gray-800 text-white py-12">
+  <div class="container mx-auto px-6">
+    <div class="text-center text-gray-400">
+      <div>
+        &copy; {thisYear} MytoCalc —  {t('footer.a project by')}
+        <a href="https://github.com/romantis" class="hover:text-gray-300">
+          Roman Tyshchenko
+        </a>
+      </div>
+      <div>
+        🪲
+        <a
+          href="https://github.com/romantis/mytocalc-feedback/issues/new?template=bug_report.md"
+          target="_blank"
+          rel="noopener"
+          class="hover:text-gray-300"
+        >
+          {t('footer.Report a bug')}
+        </a>
+        &nbsp;|&nbsp; ✉️
+        <DirectEmail client:load>
+          {t('footer.Other questions')}
+        </DirectEmail> 
+      </div>
+    </div>
+  </div>
+</footer>
