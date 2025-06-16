@@ -12,14 +12,16 @@ type HowItWorksKey = keyof typeof dict;
 const t = (key: HowItWorksKey) => dict[key] ?? key;
 ---
 
-<footer class="bg-gray-800 text-white py-12">
+<footer class="bg-gray-800 text-white py-8 sm:py-12">
   <div class="container mx-auto px-6">
     <div class="text-center text-gray-400">
       <div>
-        &copy; {thisYear} MytoCalc —  {t('footer.a project by')}
-        <a href="https://github.com/romantis" class="hover:text-gray-300">
-          Roman Tyshchenko
-        </a>
+        &copy; {thisYear} MytoCalc — {t("footer.a project by")}
+        <span class="max-[415px]:block">
+          <a href="https://github.com/romantis" class="hover:text-gray-300">
+            Roman Tyshchenko
+          </a>
+        </span>
       </div>
       <div>
         🪲
@@ -29,12 +31,17 @@ const t = (key: HowItWorksKey) => dict[key] ?? key;
           rel="noopener"
           class="hover:text-gray-300"
         >
-          {t('footer.Report a bug')}
+          {t("footer.Report a bug")}
         </a>
-        &nbsp;|&nbsp; ✉️
-        <DirectEmail client:load>
-          {t('footer.Other questions')}
-        </DirectEmail> 
+        <span class="max-[415px]:hidden">
+          &nbsp;|&nbsp;
+        </span>
+        <span class="max-[415px]:block">
+          ✉️
+         <DirectEmail client:load>
+           {t("footer.Other questions")}
+         </DirectEmail>
+        </span>
       </div>
     </div>
   </div>
