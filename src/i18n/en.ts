@@ -27,6 +27,11 @@ export const dict = {
     draft_law: "Draft law",
     draft_law_explanation: "VAT from the first euro",
   },
+  footer: {
+    'a project by': "a project by",
+    'Report a bug': "Report a bug",
+    'Other questions': "Other questions",
+  }
 };
 
 export type Dict = typeof dict;

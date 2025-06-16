@@ -26,6 +26,11 @@ export const dict = {
     draft_law: "Законопроєкт",
     draft_law_explanation: "ПДВ з першого євро",
   },
+  footer: {
+    'a project by': "проєкт від",
+    'Report a bug': "Повідомити про помилку",
+    'Other questions': "Інші питання",
+  }
 };
 
 export type Dict = typeof dict;
