@@ -1,7 +1,11 @@
 import { children, createMemo, createSignal, Show } from "solid-js";
 import type { JSX } from "solid-js";
 
-export default function DirectEmail(props: { children?: any}) {
+interface Props {
+    children?: any;
+    class?: string;
+}
+export default function DirectEmail(props: Props) {
     // Email obfuscation
     const [email, setEmail] = createSignal('mailto:соntасt@mytoсalс.соm');
     const obfuscatedEmail = createMemo(() => ['mailto:',
@@ -26,7 +30,7 @@ export default function DirectEmail(props: { children?: any}) {
         onClick={revealEmail}
         onMouseOver={revealEmail}
         href={email()}
-        class="hover:text-gray-300"
+        class={`hover:text-gray-300 ${props?.class}`}
       >
         <Show when={resolved()} fallback={'Contact me'}>
            {resolved()}
