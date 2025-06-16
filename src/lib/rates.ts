@@ -25,6 +25,11 @@ export async function fetchRates(): Promise<Record<string, number>> {
   // якщо CDN/KV ще нічого не має, /api/rates може повернути `{}`.
   const json = await res.json();
 
+  if (Array.isArray(json)) {
+    console.log('Fetched from ENDPOINT');
+  } else {
+    console.log('Will Fetch From NBU')
+  }
   const list: Rate[] = Array.isArray(json) ? json : await fetch(
      "https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?json"
   ).then(r => r.json());
