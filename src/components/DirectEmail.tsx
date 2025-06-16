@@ -1,6 +1,7 @@
-import { createMemo, createSignal } from "solid-js";
+import { children, createMemo, createSignal, Show } from "solid-js";
+import type { JSX } from "solid-js";
 
-export default function DirectEmail() {
+export default function DirectEmail(props: { children?: any}) {
     // Email obfuscation
     const [email, setEmail] = createSignal('mailto:соntасt@mytoсalс.соm');
     const obfuscatedEmail = createMemo(() => ['mailto:',
@@ -18,6 +19,7 @@ export default function DirectEmail() {
     // Only reveal if user interaction (likely a human)
       setEmail(obfuscatedEmail());
     };
+    const resolved = children(() => props.children)
     return (
 
       <a
@@ -26,7 +28,9 @@ export default function DirectEmail() {
         href={email()}
         class="hover:text-gray-300"
       >
-        Other questions
+        <Show when={resolved()} fallback={'Contact me'}>
+           {resolved()}
+        </Show>
       </a>
     );
 }
