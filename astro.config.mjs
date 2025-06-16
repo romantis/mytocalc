@@ -23,6 +23,7 @@ export default defineConfig({
   env: {
     schema: {
       ALLOWED_ORIGINS: envField.string({ context: "server", access: "public" }),
+      PUBLIC_MY_CONTACT_EMAIL: envField.string({ context: "client", access: "public" }),
     },
   },
   i18n: {
