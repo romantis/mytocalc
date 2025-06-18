@@ -1,0 +1,40 @@
+---
+import DutyCalculator from '../components/DutyCalculator';
+import HowItWorks from '../components/HowItWorks.astro';
+import type { Locale } from '../i18n/i18n';
+import Layout from '../layouts/Layout.astro';
+import type { Currency } from '../lib/currency';
+import { getRates } from '../lib/rates';
+
+const LANG: Locale = Astro.props.lang || 'uk';
+const ratesResp = await getRates();
+if ('error' in ratesResp) {
+  throw new Error(ratesResp.error);
+}
+const { rates, asOf } = ratesResp;
+
+const url = new URL(Astro.request.url);
+const q = url.searchParams;
+
+const qAmount = parseFloat(q.get('amount') || '');
+const initialAmount: number | undefined = Number.isFinite(qAmount) 
+	? qAmount 
+	: undefined;
+const initialCurrency = q.get('currency')?.toUpperCase() || 'EUR';
+const initialDraft = q.get('draft') === '1';
+---
+
+<Layout lang={LANG} >
+	<div class="max-w-4xl mx-auto p-2 md:px-4 md:py-8">
+		<DutyCalculator 
+			rates={rates}
+			asOf={asOf}
+			initialAmount={initialAmount}
+			initialCurrency={initialCurrency as Currency}
+			initialDraftLaw={initialDraft}
+			lang={LANG}
+			client:load />
+	</div>
+	
+	<HowItWorks lang={LANG}/>
+</Layout>
