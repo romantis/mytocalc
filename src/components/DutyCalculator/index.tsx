@@ -376,7 +376,7 @@ function CalculatorForm(props: FormProps) {
     }
   });
   return (
-    <div class="md:space-y-6">
+    <div class="md:space-y-6 overflow-hidden">
       <div class="bg-white rounded-3xl p-4 md:p-8 shadow-xl shadow-brand-100/50 border border-brand-100/50">
         <h2 class="max-sm:hidden md:text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
           <div class="w-8 h-8 bg-brand-100 rounded-lg flex items-center justify-center">
