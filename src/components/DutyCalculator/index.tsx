@@ -15,10 +15,10 @@ import { calcDuty, type DutyResult } from "../../lib/calc";
 import { convert, getCurrencyMeta, getMoneyFormatter, type Currency, type CurrencyMeta } from "../../lib/currency";
 import { fetchDictionary, type Dictionary, type Locale } from "../../i18n/i18n";
 
-// const dicts = { uk: flatten(uk), en: flatten(en) };
 
 interface DutyCalculatorProps {
   rates: Record<string, number>;
+  asOf: string; // 16.06.2025'
   /** Optional initial state pulled from URL‑params on SSR */
   initialAmount?: number;
   initialCurrency?: Currency;
@@ -40,6 +40,8 @@ export default function DutyCalculator(props: DutyCalculatorProps) {
   const [currency, setCurrency] = createSignal<Currency>(
     props.initialCurrency ?? "EUR"
   );
+
+  const rate = createMemo(() => props.rates[currency()] ?? 1); // default to 1 if not provided
 
   const [draftLaw, setDraftLaw] = createSignal<boolean>(
     props.initialDraftLaw ?? false
@@ -138,6 +140,8 @@ export default function DutyCalculator(props: DutyCalculatorProps) {
       {/* Calculator Form */}
 
         <CalculatorForm
+          rate={rate}
+          asOf={props.asOf}
           amountRaw={amountRaw}
           currency={currency}
           draftLaw={draftLaw}
@@ -336,6 +340,8 @@ export default function DutyCalculator(props: DutyCalculatorProps) {
 }
 
 interface FormProps {
+  rate: Accessor<number>;
+  asOf: string;
   amountRaw: Accessor<string>;
   currency: Accessor<Currency>;
   draftLaw: Accessor<boolean>;
@@ -348,6 +354,8 @@ interface FormProps {
 // CalculatorForm
 function CalculatorForm(props: FormProps) {
   const {
+    rate,
+    asOf,
     amountRaw,
     currency,
     draftLaw,
@@ -422,12 +430,19 @@ function CalculatorForm(props: FormProps) {
 
           {/* Currency Select */}
           <div class="group">
-            <label
-              for="currency"
-              class="block text-sm font-semibold text-gray-700 mb-2"
-            >
-              {t('currency')}
-            </label>
+            <div class="flex justify-between align-baseline text-sm font-semibold text-gray-700 mb-2">
+              <label
+                for="currency"
+                class="block"
+              >
+                {t('currency')}
+              </label>
+
+               <Show when={currency() !== "UAH"}>
+                <span title={`${t('NBU rate')}: 1 ${currency()} = ${rate()} UAH (${t('asOf')} ${asOf} )`}> {rate()}</span>
+              </Show>
+
+            </div>
             <select
               id="currency"
               class="w-full h-14 rounded-2xl border-2 border-gray-200 px-4 text-lg font-medium
