@@ -1,13 +1,10 @@
 export const prerender = false;
 
 import type { APIRoute } from "astro";
-import { ALLOWED_ORIGINS } from "astro:env/server";
+import { ALLOWED_ORIGINS, NBU_API_URL } from "astro:env/server";
 
 type RatesSource = 'KV' | 'EDGE' | 'NBU';
 
-
-const DEV_FALLBACK_URL =
-  "https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?json";
 
 /* ---------------- CORS ---------------- */
 const allowedOrigins = ALLOWED_ORIGINS.split(",")
@@ -82,7 +79,7 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
   /* 0.  Local dev  → простий proxy на НБУ  ------------------------- */
   if (!locals.runtime /* немає Workers runtime = astro dev */) {
     console.log("local DEV → direct fetch");
-    const r = await fetch(DEV_FALLBACK_URL);
+    const r = await fetch(NBU_API_URL);
     // Щоби локально відразу бачити, що CORS працює так само
     const txt = JSON.stringify(await r.json());
     return addHeaders(jsonResp(txt, {"X-Rate-Source": 'NBU'}), getCorsHeaders(origin));
@@ -114,7 +111,7 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
 
   if (!body) {
     console.log("KV MISS → fetch NBU");
-    const nbuRes = await fetch(DEV_FALLBACK_URL, { cf: { cacheTtl: 3600 } });
+    const nbuRes = await fetch(NBU_API_URL, { cf: { cacheTtl: 3600 } });
     if (!nbuRes.ok) return new Response("NBU fetch failed", { status: 502 });
 
     body = await nbuRes.text();            // already JSON array string

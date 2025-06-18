@@ -24,6 +24,7 @@ export default defineConfig({
     schema: {
       ALLOWED_ORIGINS: envField.string({ context: "server", access: "public" }),
       PUBLIC_MY_CONTACT_EMAIL: envField.string({ context: "client", access: "public" }),
+      NBU_API_URL: envField.string({ context: "server", access: "public" }),
     },
   },
   i18n: {
