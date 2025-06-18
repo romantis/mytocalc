@@ -3,10 +3,18 @@ const SITE   =  (import.meta.env.MODE !== 'development')
   ?  import.meta.env.SITE 
   : `http://localhost:${process.env.PORT ?? 4321}`;
 
+import { NBU_API_URL } from "astro:env/server";
+
 
 export interface Rate {
   cc: string; // 'USD', 'EUR', …
   rate: number;
+  exchangedate: string; // '16.06.2025'
+}
+
+export interface RatesResp {
+  asOf: string; // '16.06.2025'
+  rates: Record<string, number>; // { USD: 41.4466, EUR: 47.6926, … }
 }
 
 /** --- runtime constants --- */
@@ -15,7 +23,7 @@ const LS_KEY_TS = 'mytocalccalc:rates:ts';
 const TTL_MS = 24 * 60 * 60 * 1_000; // 24 h
 
 /** --- network first with graceful fallback --- */
-export async function fetchRates(): Promise<Record<string, number>> {
+export async function fetchRates(): Promise<RatesResp> {
   const endpoint =
     typeof window === "undefined"
       ? new URL("/api/rates", SITE).toString()
@@ -30,28 +38,28 @@ export async function fetchRates(): Promise<Record<string, number>> {
   } else {
     console.log('Will Fetch From NBU')
   }
-  const list: Rate[] = Array.isArray(json) ? json : await fetch(
-     "https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?json"
-  ).then(r => r.json());
+  const list: Rate[] = Array.isArray(json) ? json : await fetch( NBU_API_URL ).then(r => r.json());
 
-  return Object.fromEntries(list.map(({ cc, rate }) => [cc, rate]));
+  const rates =  Object.fromEntries(list.map(({ cc, rate }) => [cc, rate]));
+  const asOf = list[0]?.exchangedate   // '16.06.2025'
+  return {asOf, rates}
 }
 
 /** Спроба прочитати кеш ↴ */
-function readCache(): Record<string, number> | null {
+function readCache(): RatesResp | null {
   try {
     if (typeof window === 'undefined') return null; // SSR
     const ts = Number(localStorage.getItem(LS_KEY_TS));
     if (!ts || Date.now() - ts > TTL_MS) return null;
     const json = localStorage.getItem(LS_KEY_DATA);
-    return json ? (JSON.parse(json) as Record<string, number>) : null;
+    return json ? (JSON.parse(json) as RatesResp) : null;
   } catch {
     return null; // private mode або quota exceeded
   }
 }
 
 /** Запис курсу в кеш ↴ */
-function writeCache(rates: Record<string, number>): void {
+function writeCache(rates: RatesResp): void {
   try {
     localStorage.setItem(LS_KEY_DATA, JSON.stringify(rates));
     localStorage.setItem(LS_KEY_TS, Date.now().toString());
@@ -64,7 +72,7 @@ function writeCache(rates: Record<string, number>): void {
  * Публічний entry-point для UI:
  * повертає курси з кешу, мережі або файлу-fallback.
  */
-export async function getRates(): Promise<Record<string, number>> {
+export async function getRates(): Promise<RatesResp | {error: string}> {
   // 1. спроба взяти валідний кеш
   const cached = readCache();
   if (cached) {
@@ -80,14 +88,6 @@ export async function getRates(): Promise<Record<string, number>> {
     return fresh;
   } catch (err) {
     console.error(err);
-    console.log('fallbackFetchFromNBU');
-    return fallbackFetchFromNBU();
+    return {error: 'Failed to fetch rates', };
   }
-}
-
-async function fallbackFetchFromNBU() {
-   const res = await fetch('https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?json' );
-  if (!res.ok) throw new Error(`NBU API responded ${res.status}`);
-  const data: Rate[] = await res.json();
-  return Object.fromEntries(data.map(({ cc, rate }) => [cc, rate]));
 }
