@@ -439,7 +439,7 @@ function CalculatorForm(props: FormProps) {
               </label>
 
                <Show when={currency() !== "UAH"}>
-                <span title={`${t('NBU rate')}: 1 ${currency()} = ${rate()} UAH (${t('asOf')} ${asOf} )`}> {rate()}</span>
+                <span title={`1 ${currency()} = ${rate()} UAH (${t('NBU rate')} ${t('asOf')} ${asOf} )`}> {rate()}</span>
               </Show>
 
             </div>

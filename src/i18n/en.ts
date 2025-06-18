@@ -17,7 +17,7 @@ export const dict = {
   copied: "Link copied to clipboard",
   result: "Result",
   'NBU rate': "National Bank of Ukraine exchange rate",
-  'asOf': "As of",
+  'asOf': "as of",
   no_duty_message:
     "Your order does not exceed the limit of 150€, so no additional payments are applied.",
   howItWorks: {
