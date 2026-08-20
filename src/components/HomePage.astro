@@ -7,11 +7,8 @@ import type { Currency } from '../lib/currency';
 import { getRates } from '../lib/rates';
 
 const LANG: Locale = Astro.props.lang || 'uk';
-const ratesResp = await getRates();
-if ('error' in ratesResp) {
-  throw new Error(ratesResp.error);
-}
-const { rates, asOf } = ratesResp;
+const runtime = Astro.locals?.runtime;
+const { rates, asOf } = await getRates(runtime);
 
 const url = new URL(Astro.request.url);
 const q = url.searchParams;

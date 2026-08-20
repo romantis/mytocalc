@@ -1,10 +1,5 @@
-// import fallbackRates from '../data/rates.fallback.json'; 
-const SITE   =  (import.meta.env.MODE !== 'development') 
-  ?  import.meta.env.SITE 
-  : `http://localhost:${process.env.PORT ?? 4321}`;
-
+import fallbackRates from '../data/rates.fallback.json';
 import { NBU_API_URL } from "astro:env/server";
-
 
 export interface Rate {
   cc: string; // 'USD', 'EUR', …
@@ -17,77 +12,55 @@ export interface RatesResp {
   rates: Record<string, number>; // { USD: 41.4466, EUR: 47.6926, … }
 }
 
-/** --- runtime constants --- */
-const LS_KEY_DATA = 'mytocalccalc:rates';
-const LS_KEY_TS = 'mytocalccalc:rates:ts';
-const TTL_MS = 24 * 60 * 60 * 1_000; // 24 h
-
-/** --- network first with graceful fallback --- */
-export async function fetchRates(): Promise<RatesResp> {
-  const endpoint =
-    typeof window === "undefined"
-      ? new URL("/api/rates", SITE).toString()
-      : "/api/rates";
-
-  const res  = await fetch(endpoint);
-  // якщо CDN/KV ще нічого не має, /api/rates може повернути `{}`.
-  const json = await res.json();
-
-  if (Array.isArray(json)) {
-    console.log('Fetched from ENDPOINT');
-  } else {
-    console.log('Will Fetch From NBU')
-  }
-  const list: Rate[] = Array.isArray(json) ? json : await fetch( NBU_API_URL ).then(r => r.json());
-
-  const rates =  Object.fromEntries(list.map(({ cc, rate }) => [cc, rate]));
-  const asOf = list[0]?.exchangedate   // '16.06.2025'
-  return {asOf, rates}
+function parseRatesList(list: Rate[]): RatesResp {
+  const rates = Object.fromEntries(list.map(({ cc, rate }) => [cc, rate]));
+  const asOf = list[0]?.exchangedate || new Date().toLocaleDateString('uk-UA');
+  return { asOf, rates };
 }
 
-/** Спроба прочитати кеш ↴ */
-function readCache(): RatesResp | null {
-  try {
-    if (typeof window === 'undefined') return null; // SSR
-    const ts = Number(localStorage.getItem(LS_KEY_TS));
-    if (!ts || Date.now() - ts > TTL_MS) return null;
-    const json = localStorage.getItem(LS_KEY_DATA);
-    return json ? (JSON.parse(json) as RatesResp) : null;
-  } catch {
-    return null; // private mode або quota exceeded
-  }
-}
-
-/** Запис курсу в кеш ↴ */
-function writeCache(rates: RatesResp): void {
-  try {
-    localStorage.setItem(LS_KEY_DATA, JSON.stringify(rates));
-    localStorage.setItem(LS_KEY_TS, Date.now().toString());
-  } catch {
-    /* ignore quota / disabled storage */
-  }
-}
+export const FALLBACK_RATES: RatesResp = parseRatesList(fallbackRates as Rate[]);
 
 /**
- * Публічний entry-point для UI:
- * повертає курси з кешу, мережі або файлу-fallback.
+ * Публічний entry-point для SSR:
+ * повертає курси з Cloudflare KV, live NBU API або вбудованого fallback-файлу.
  */
-export async function getRates(): Promise<RatesResp | {error: string}> {
-  // 1. спроба взяти валідний кеш
-  const cached = readCache();
-  if (cached) {
-    console.log('From cache');
-    return cached
-  };
-
-  // 2. спроба отримати live-дані НБУ
-  try {
-    const fresh = await fetchRates();
-    writeCache(fresh);
-    console.log('From /api/rates');
-    return fresh;
-  } catch (err) {
-    console.error(err);
-    return {error: 'Failed to fetch rates', };
+export async function getRates(runtime?: { env?: any; ctx?: any }): Promise<RatesResp> {
+  // 1. Спроба прочитати з Cloudflare KV
+  const kv = runtime?.env?.RATES_KV as KVNamespace | undefined;
+  if (kv) {
+    try {
+      const kvData = await kv.get('rates');
+      if (kvData) {
+        const parsed = JSON.parse(kvData);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parseRatesList(parsed);
+        }
+      }
+    } catch (err) {
+      console.warn('[rates] Failed to read from KV:', err);
+    }
   }
+
+  // 2. Спроба отримати live-дані з НБУ
+  try {
+    const url = NBU_API_URL || 'https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?json';
+    const res = await fetch(url, { cf: { cacheTtl: 3600 } } as RequestInit);
+    if (res.ok) {
+      const data: Rate[] = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        if (kv && runtime?.ctx?.waitUntil) {
+          runtime.ctx.waitUntil(
+            kv.put('rates', JSON.stringify(data), { expirationTtl: 86400 })
+          );
+        }
+        return parseRatesList(data);
+      }
+    }
+  } catch (err) {
+    console.warn('[rates] Failed to fetch from NBU API:', err);
+  }
+
+  // 3. Fallback до локальних статичних курсів
+  console.warn('[rates] Using fallback exchange rates');
+  return FALLBACK_RATES;
 }

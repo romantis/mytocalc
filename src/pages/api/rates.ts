@@ -2,9 +2,7 @@ export const prerender = false;
 
 import type { APIRoute } from "astro";
 import { ALLOWED_ORIGINS, NBU_API_URL } from "astro:env/server";
-
-type RatesSource = 'KV' | 'EDGE' | 'NBU';
-
+import fallbackRates from "../../data/rates.fallback.json";
 
 /* ---------------- CORS ---------------- */
 const allowedOrigins = ALLOWED_ORIGINS.split(",")
@@ -36,7 +34,6 @@ function addHeaders(
   });
 }
 
-
 /** Стандартний Web Crypto у Workers для швидкого weak-ETag */
 async function computeEtag(str: string): Promise<string> {
   const buf = await crypto.subtle.digest(
@@ -53,7 +50,13 @@ async function computeEtag(str: string): Promise<string> {
 function getCorsHeaders(
   origin: string | null
 ): Record<string, string> | undefined {
-  if (origin && allowedOrigins.includes(origin)) {
+  if (!origin) return undefined;
+  if (
+    allowedOrigins.includes(origin) ||
+    origin.endsWith(".pages.dev") ||
+    origin.endsWith("mytocalc.com") ||
+    origin.includes("localhost")
+  ) {
     return {
       "Access-Control-Allow-Origin": origin,
       "Access-Control-Allow-Methods": "GET, OPTIONS",
@@ -79,11 +82,18 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
   /* 0.  Local dev  → простий proxy на НБУ  ------------------------- */
   if (!locals.runtime /* немає Workers runtime = astro dev */) {
     console.log("local DEV → direct fetch");
-    const r = await fetch(NBU_API_URL);
-    // Щоби локально відразу бачити, що CORS працює так само
-    const txt = JSON.stringify(await r.json());
-    return addHeaders(jsonResp(txt, {"X-Rate-Source": 'NBU'}), getCorsHeaders(origin));
+    try {
+      const r = await fetch(NBU_API_URL);
+      if (r.ok) {
+        const txt = JSON.stringify(await r.json());
+        return addHeaders(jsonResp(txt, { "X-Rate-Source": "NBU" }), getCorsHeaders(origin));
+      }
+    } catch (e) {
+      console.warn("Dev NBU fetch failed, fallback:", e);
+    }
+    return addHeaders(jsonResp(JSON.stringify(fallbackRates), { "X-Rate-Source": "FALLBACK" }), getCorsHeaders(origin));
   }
+
   const { env, ctx } = locals.runtime;
   const cors = getCorsHeaders(origin);
 
@@ -95,27 +105,36 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
   if (edgeCache) {
     const key = new Request(url.toString(), { method: "GET" });
     const hit = await edgeCache.match(key);
-    if (hit) return addHeaders(hit, {...cors, "X-Rate-Source": "EDGE"});
+    if (hit) return addHeaders(hit, { ...cors, "X-Rate-Source": "EDGE" });
   }
   console.log("EDGE cache MISS → KV");
 
   /* === ② KV === */
- const kv = env?.RATES_KV as KVNamespace | undefined;
+  const kv = env?.RATES_KV as KVNamespace | undefined;
 
   let body: string | null = null;
   if (kv) {
-    body = await kv.get('rates');
+    body = await kv.get("rates");
   } else {
     console.warn("[rates] RATES_KV binding is missing");
   }
 
   if (!body) {
     console.log("KV MISS → fetch NBU");
-    const nbuRes = await fetch(NBU_API_URL, { cf: { cacheTtl: 3600 } });
-    if (!nbuRes.ok) return new Response("NBU fetch failed", { status: 502 });
-
-    body = await nbuRes.text();            // already JSON array string
-    ctx.waitUntil(env.RATES_KV.put("rates", body, { expirationTtl: 86400 }));
+    try {
+      const nbuRes = await fetch(NBU_API_URL, { cf: { cacheTtl: 3600 } } as RequestInit);
+      if (nbuRes.ok) {
+        body = await nbuRes.text();
+        if (kv && ctx?.waitUntil) {
+          ctx.waitUntil(env.RATES_KV.put("rates", body, { expirationTtl: 86400 }));
+        }
+      } else {
+        body = JSON.stringify(fallbackRates);
+      }
+    } catch (e) {
+      console.warn("NBU fetch failed, using fallback:", e);
+      body = JSON.stringify(fallbackRates);
+    }
   } else {
     console.log("KV HIT");
   }
@@ -136,11 +155,13 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
     ETag: etag,
     Vary: "Origin", // щоб CDN кешував по-різному для різних Origin
     ...cors,
-    "X-Rate-Source": 'KV'
+    "X-Rate-Source": "KV",
   });
 
   /* === ⑤ Кладемо у Edge-cache асинхронно === */
-  if (edgeCache) ctx.waitUntil(edgeCache.put(url.toString(), resp.clone()));
+  if (edgeCache && ctx?.waitUntil) {
+    ctx.waitUntil(edgeCache.put(url.toString(), resp.clone()));
+  }
   console.log("EDGE cache PUT, ETag", etag);
 
   return resp;
